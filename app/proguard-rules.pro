@@ -36,7 +36,7 @@
 # 2. TOTAL DEBUG INFORMATION WIPE
 # ---------------------------------------------------------
 # [cite_start]Remove all metadata that hackers use to understand your code [cite: 4]
--dontattributes SourceFile,LineNumberTable,Signature,EnclosingMethod,InnerClasses,LocalVariableTable,LocalVariableTypeTable
+# -dontattributes SourceFile,LineNumberTable,Signature,EnclosingMethod,InnerClasses,LocalVariableTable,LocalVariableTypeTable
 -renamesourcefileattribute ''
 
 # ---------------------------------------------------------
