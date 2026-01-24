@@ -37,7 +37,26 @@
 # ---------------------------------------------------------
 # [cite_start]Remove all metadata that hackers use to understand your code [cite: 4]
 # -dontattributes SourceFile,LineNumberTable,Signature,EnclosingMethod,InnerClasses,LocalVariableTable,LocalVariableTypeTable
--renamesourcefileattribute ''
+# -renamesourcefileattribute ''
+
+# 1. Keep line numbers for meaningful crash reports (Recommended)
+-keepattributes SourceFile,LineNumberTable
+
+# 2. Rename the source file to something generic for obfuscation
+-renamesourcefileattribute SourceFile
+
+# 3. Essential attributes for Kotlin and Compose to function correctly
+# Removing 'Signature' or 'InnerClasses' will cause runtime crashes
+-keepattributes Signature, EnclosingMethod, InnerClasses, AnnotationDefault, *Annotation*
+
+# 4. Prevent R8 from removing metadata that Kotlin needs
+-keep class kotlin.Metadata { *; }
+
+# 5. Specific for Jetpack Compose (since you are using Compose)
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
+    @androidx.compose.runtime.ReadOnlyComposable *;
+}
 
 # ---------------------------------------------------------
 # 3. ADVANCED DICTIONARY OBFUSCATION
