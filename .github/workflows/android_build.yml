@@ -38,17 +38,17 @@ jobs:
 
       # 5. Build Debug APK
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug
 
       # 6. Build Release APK
       # Note: This will be unsigned unless signingConfig is set in build.gradle
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease
 
       # 7. Build Release Bundle (AAB)
       # Required for Play Store upload
       - name: Build Release AAB
-        run: ./gradlew bundleRelease --stacktrace
+        run: ./gradlew bundleRelease
 
       # 8. Upload Debug APK Artifact
       - name: Upload Debug APK
