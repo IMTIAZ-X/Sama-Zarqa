@@ -65,7 +65,7 @@ android {
             
             // Profiles for 30% faster app startup
             @Suppress("UnstableApiUsage")
-            baselineProfile.experimentalProperties["android.experimental.baselineprofiles.enable"] = true
+          //  baselineProfile.experimentalProperties["android.experimental.baselineprofiles.enable"] = true
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
