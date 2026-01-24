@@ -103,7 +103,7 @@ android {
 
     buildFeatures {
         compose = true
-        // buildConfig = true // Enabled for API Keys and professional environment management
+        buildConfig = true // Enabled for API Keys and professional environment management
     }
 androidComponents {
     onVariants { variant ->
