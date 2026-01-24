@@ -64,6 +64,7 @@ android {
     
             isMinifyEnabled = true 
             isShrinkResources = true
+            isDebuggable = false
             
             // Profiles for 30% faster app startup
             @Suppress("UnstableApiUsage")
