@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+   // alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -65,7 +65,7 @@ android {
             
             // Profiles for 30% faster app startup
             @Suppress("UnstableApiUsage")
-            baselineProfile.experimentalProperties["android.experimental.baselineprofiles.enable"] = true
+          //  baselineProfile.experimentalProperties["android.experimental.baselineprofiles.enable"] = true
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -103,7 +103,7 @@ android {
 
     buildFeatures {
         compose = true
-        // buildConfig = true // Enabled for API Keys and professional environment management
+        buildConfig = true // Enabled for API Keys and professional environment management
     }
 androidComponents {
     onVariants { variant ->
