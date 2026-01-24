@@ -12,7 +12,6 @@ jobs:
     name: Build Apps & Bundles
     runs-on: ubuntu-latest
     
-    # Keeps your build process organized and cancels outdated runs
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -28,9 +27,9 @@ jobs:
         with:
           java-version: '23'
           distribution: 'temurin'
-          cache: 'gradle'
+          cache: 'gradle' # Basic Java-level gradle caching
 
-      # 3. Setup Gradle with Caching (Enables "Fast Build")
+      # 3. Setup Gradle with Advanced Caching Options
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -38,19 +37,22 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           # Enables detailed Build Summary in GitHub Actions UI
           add-job-summary: 'on'
+          # Advanced Caching settings
+          cache-overwrite-existing: false # Speeds up by not overwriting valid caches
+          generate-job-summary: true
 
       # 4. Grant execute permission for the Gradle Wrapper
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 5. Run Lint Analysis (Separated to avoid conflicts)
+      # 5. Run Lint Analysis (Separated)
       - name: Run Lint Analysis
-        run: ./gradlew lintDebug --parallel --stacktrace
+        run: ./gradlew lintDebug --parallel --build-cache --stacktrace
 
-      # 6. Run Unit Tests (Separated - continues even if libs are missing)
+      # 6. Run Unit Tests (Separated)
      # - name: Run Unit Tests
-     #   run: ./gradlew testDebugUnitTest --parallel --stacktrace
-      #  continue-on-error: true # Prevents build failure due to missing JUnit libs
+     #   run: ./gradlew testDebugUnitTest --parallel --build-cache --stacktrace
+     #   continue-on-error: true 
 
       # 7. Build Debug APK
       - name: Build Debug APK
@@ -60,11 +62,11 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --parallel --build-cache --stacktrace
 
-      # 9. Build Release AAB (Required for Play Store)
+      # 9. Build Release AAB
       - name: Build Release AAB
         run: ./gradlew bundleRelease --parallel --build-cache --stacktrace
 
-      # 10. Upload Quality Reports (Restored reporting)
+      # 10. Upload Quality Reports
       - name: Upload Quality Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -74,23 +76,23 @@ jobs:
             app/build/reports/lint-results-*
             app/build/test-results/testDebugUnitTest
 
-      # 11. Upload Debug APK Artifact (Your original path & name)
+      # 11. Upload Debug APK Artifact
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/*.apk
 
-      # 12. Upload Release APK Artifact (Your original path & name)
+      # 12. Upload Release APK Artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: app/build/outputs/apk/release/*.apk
 
-      # 13. Upload Release Bundle (AAB) Artifact (Your original path & name)
+      # 13. Upload Release Bundle (AAB) Artifact
       - name: Upload Release Bundle
         uses: actions/upload-artifact@v4
         with:
           name: app-release-bundle
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: app/build/outputs/bundle/release/*.aab
