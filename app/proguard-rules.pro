@@ -20,11 +20,6 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# WIPE DEBUG / SOURCE INFO
--renamesourcefileattribute SourceFile
--keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable
-
-
 # 0. CORE
 -optimizationpasses 5
 -overloadaggressively
@@ -48,9 +43,9 @@
 
 
 # 3. UNREADABLE DICTIONARY
--obfuscationdictionary dictionary.txt
--classobfuscationdictionary dictionary.txt
--packageobfuscationdictionary dictionary.txt
+#-obfuscationdictionary dictionary.txt
+#-classobfuscationdictionary dictionary.txt
+#-packageobfuscationdictionary dictionary.txt
 
 
 # 4. ANDROID ENTRY POINTS (ONLY REQUIRED)
@@ -64,6 +59,7 @@
 # 5. KOTLIN (MINIMUM SURVIVAL SET)
 -keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*
 #-keep class kotlin.Metadata { *; }
+-renamesourcefileattribute SourceFile
 
 
 # 6. JETPACK COMPOSE (STRICT)
