@@ -48,7 +48,6 @@ aw
 ax
 ay
 az
-ab
 bb
 cc
 dd
@@ -60,11 +59,9 @@ ii
 jj
 kk
 ll
-mm
 nn
 mm
 pp
-ii
 sv
 ss
 rr

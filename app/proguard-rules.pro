@@ -30,7 +30,7 @@
 -overloadaggressively
 -allowaccessmodification
 -mergeinterfacesaggressively
--useuniqueclassmembernames
+#-useuniqueclassmembernames
 -dontusemixedcaseclassnames
 -ignorewarnings
 -dontpreverify
