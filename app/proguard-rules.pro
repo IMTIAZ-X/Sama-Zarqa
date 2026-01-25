@@ -25,7 +25,7 @@
 # 1. AGGRESSIVE OPTIMIZATION & CODE HARDENING
 # ---------------------------------------------------------
 # Increase optimization passes to deeply restructure bytecode
--optimizationpasses 10
+-optimizationpasses 3
 -allowaccessmodification
 -mergeinterfacesaggressively
 -repackageclasses ''
@@ -37,29 +37,28 @@
 # ---------------------------------------------------------
 # [cite_start]Remove all metadata that hackers use to understand your code [cite: 4]
 # -dontattributes SourceFile,LineNumberTable,Signature,EnclosingMethod,InnerClasses,LocalVariableTable,LocalVariableTypeTable
-# -renamesourcefileattribute ''
-
-# 1. Keep line numbers for meaningful crash reports (Recommended)
--keepattributes SourceFile,LineNumberTable
-
-# 2. Rename the source file to something generic for obfuscation
--renamesourcefileattribute SourceFile
-
-# 3. Essential attributes for Kotlin and Compose to function correctly
-# Removing 'Signature' or 'InnerClasses' will cause runtime crashes
--keepattributes Signature, EnclosingMethod, InnerClasses, AnnotationDefault, *Annotation*
-
-# 4. Prevent R8 from removing metadata that Kotlin needs
--keep class kotlin.Metadata { *; }
-
-# 5. Specific for Jetpack Compose (since you are using Compose)
--keepclassmembers class * {
-    @androidx.compose.runtime.Composable *;
-    @androidx.compose.runtime.ReadOnlyComposable *;
-}
+#-renamesourcefileattribute ''
 
 # ---------------------------------------------------------
-# 3. ADVANCED DICTIONARY OBFUSCATION
+# THE SECRET WEAPON: CUSTOM DICTIONARY
+# ---------------------------------------------------------
+# This makes your code look like: val l1ll1 = "..." 
+# Create a file named 'mapping.txt' with characters like i, l, 1, I
+# -obfuscationdictionary mapping.txt
+# -classobfuscationdictionary mapping.txt
+# -packageobfuscationdictionary mapping.txt
+
+# ---------------------------------------------------------
+# 3. METADATA STRIPPING (DO NOT REMOVE SIGNATURE)
+# ---------------------------------------------------------
+# We strip line numbers but KEEP Signatures and InnerClasses 
+# because Kotlin Reflection and Compose need them to work.
+-keepattributes Signature, EnclosingMethod, InnerClasses, *Annotation*
+-renamesourcefileattribute ''
+-dontskipnonpubliclibraryclasses
+
+# ---------------------------------------------------------
+#  ADVANCED DICTIONARY OBFUSCATION
 # ---------------------------------------------------------
 # Use "unreadable" characters for class/member names.
 # You can provide a custom text file with special characters (e.g., ilI1)
@@ -79,10 +78,10 @@
 #-keep public class * extends android.view.View
 
 # Keep annotations only if they are used by essential libraries (like Retrofit/Room)
--keepattributes *Annotation*
+#-keepattributes *Annotation*
 
 # Reflection protection
--keepattributes *Annotation*, EnclosingMethod, InnerClasses
+#-keepattributes *Annotation*, EnclosingMethod, InnerClasses
 
 # ---------------------------------------------------------
 # 5. NATIVE (JNI) SECURITY & API KEY PROTECTION
@@ -99,6 +98,18 @@
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
+
+# ---------------------------------------------------------
+# 4. JETPACK COMPOSE & KOTLIN SPECIFIC
+# ---------------------------------------------------------
+# Since you use Compose, we must protect the Composable functions
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
+    @androidx.compose.runtime.ReadOnlyComposable *;
+}
+
+# Keep Kotlin standard library metadata (important for stability)
+-keep class kotlin.Metadata { *; }
 
 # ---------------------------------------------------------
 # 7. ANTI-FRIDA & ANTI-TAMPER RULES
