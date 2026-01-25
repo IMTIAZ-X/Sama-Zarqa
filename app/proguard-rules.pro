@@ -103,13 +103,13 @@
 # 4. JETPACK COMPOSE & KOTLIN SPECIFIC
 # ---------------------------------------------------------
 # Since you use Compose, we must protect the Composable functions
--keepclassmembers class * {
-    @androidx.compose.runtime.Composable *;
-    @androidx.compose.runtime.ReadOnlyComposable *;
-}
+#-keepclassmembers class * {
+#    @androidx.compose.runtime.Composable *;
+#    @androidx.compose.runtime.ReadOnlyComposable *;
+#}
 
 # Keep Kotlin standard library metadata (important for stability)
--keep class kotlin.Metadata { *; }
+#-keep class kotlin.Metadata { *; }
 
 # ---------------------------------------------------------
 # 7. ANTI-FRIDA & ANTI-TAMPER RULES
@@ -120,18 +120,18 @@
 
 
 # Removes every bit of debug info. Stack traces will be unreadable.
--renamesourcefileattribute ''
--keepattributes !SourceFile,!LineNumberTable
--keepattributes !LocalVariableTable,!LocalVariableTypeTable
+#-renamesourcefileattribute ''
+#-keepattributes !SourceFile,!LineNumberTable
+#-keepattributes !LocalVariableTable,!LocalVariableTypeTable
 -obfuscationdictionary dictionary.txt
 -classobfuscationdictionary dictionary.txt
 -packageobfuscationdictionary dictionary.txt
 # This makes your classes and methods look like 'a', 'b', 'I1l', etc.
--useuniqueclassmembernames
--overloadaggressively
--repackageclasses ''
--allowaccessmodification
--mergeinterfacesaggressively
+#-useuniqueclassmembernames
+#-overloadaggressively
+#-repackageclasses ''
+#-allowaccessmodification
+#-mergeinterfacesaggressively
 
 
 # Remove all Android Logs (Security & Size improvement)
@@ -148,7 +148,7 @@
 # 4. KOTLIN & COMPOSE PROTECTION (STRICT MINIMUM)
 # ---------------------------------------------------------
 # Compose needs these to run, but we strip everything else.
--keepattributes Signature,EnclosingMethod,InnerClasses,*Annotation*
+#-keepattributes Signature,EnclosingMethod,InnerClasses,*Annotation*
 
 -keepclassmembers class * {
     @androidx.compose.runtime.Composable *;
@@ -169,20 +169,8 @@
 # ---------------------------------------------------------
 # Only keep what Android OS needs to start the app. 
 # Everything else gets renamed or deleted.
--keep public class * extends android.app.Activity
--keep public class * extends android.app.Application
--keep public class * extends android.app.Service
--keep public class * extends android.content.BroadcastReceiver
--keep public class * extends android.content.ContentProvider
-
-# ---------------------------------------------------------
-# 6. SECURITY & JNI (NATIVE) HARDENING
-# ---------------------------------------------------------
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-
-# WebView security (if you ever use it)
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
+#-keep public class * extends android.app.Activity
+#-keep public class * extends android.app.Application
+#-keep public class * extends android.app.Service
+#-keep public class * extends android.content.BroadcastReceiver
+#-keep public class * extends android.content.ContentProvider
