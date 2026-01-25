@@ -32,6 +32,20 @@
 -overloadaggressively
 -dontpreverify
 
+# Full obfuscation and shrinking
+-dontskipnonpubliclibraryclasses
+-dontusemixedcaseclassnames
+-ignorewarnings
+-printusage
+-verbose
+-useuniqueclassmembernames
+-flattenpackagehierarchy
+
+# Remove debug info
+-renamesourcefileattribute SourceFile
+-keepattributes SourceFile, LineNumberTable
+
+
 # ---------------------------------------------------------
 # 2. TOTAL DEBUG INFORMATION WIPE
 # ---------------------------------------------------------
@@ -54,15 +68,14 @@
 # We strip line numbers but KEEP Signatures and InnerClasses 
 # because Kotlin Reflection and Compose need them to work.
 -keepattributes Signature, EnclosingMethod, InnerClasses, *Annotation*
--renamesourcefileattribute ''
--dontskipnonpubliclibraryclasses
+#-renamesourcefileattribute ''
 
 # ---------------------------------------------------------
 #  ADVANCED DICTIONARY OBFUSCATION
 # ---------------------------------------------------------
 # Use "unreadable" characters for class/member names.
 # You can provide a custom text file with special characters (e.g., ilI1)
--useuniqueclassmembernames
+#-useuniqueclassmembernames
 -dontskipnonpubliclibraryclasses
 -dontskipnonpubliclibraryclassmembers
 
