@@ -2,7 +2,7 @@ package com.imtbytes.samazarqa
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.Icons // এই ইমপোর্টটি জরুরি
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LightMode
@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +27,6 @@ fun HomeScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- Header Section ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -40,8 +38,6 @@ fun HomeScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            
-            // Dark/Light Mode Toggle Button
             IconButton(onClick = onThemeToggle) {
                 Icon(
                     imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
@@ -53,32 +49,27 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- Writing Area (TextField) ---
         var text by remember { mutableStateOf("") }
         
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             label = { Text("Write something here...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp),
+            modifier = Modifier.fillMaxWidth().height(150.dp),
             maxLines = 10
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- Action Buttons ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = { /* Save Logic */ }) {
+            Button(onClick = { }) {
                 Icon(Icons.Default.Edit, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Save Note")
             }
-            
             OutlinedButton(onClick = { text = "" }) {
                 Text("Clear")
             }
@@ -86,7 +77,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // --- Dashboard / Features Grid ---
         Text(
             text = "Quick Actions",
             style = MaterialTheme.typography.titleMedium,
