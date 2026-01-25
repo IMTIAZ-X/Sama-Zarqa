@@ -138,6 +138,8 @@ dependencies {
     
     // Navigation (Essential for Multi-screen apps)
     implementation(libs.androidx.navigation.compose)
+    
+    implementation(libs.material.icons.extended)
 
     // UI Layer (Compose BOM)
     implementation(platform(libs.androidx.compose.bom))
