@@ -9,14 +9,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// UI-এর অবস্থা বোঝানোর জন্য একটি Sealed Interface
 sealed interface UiState {
-    data object Loading : UiState // স্প্ল্যাশ স্ক্রিন
-    data class Home(val isSecure: Boolean) : UiState // হোম স্ক্রিন (সিকিউরিটি স্ট্যাটাস সহ)
+    data object Loading : UiState
+    data class Home(val isSecure: Boolean) : UiState
 }
 
 class MainViewModel : ViewModel() {
-    // শুরুতে অ্যাপ লোডিং অবস্থায় থাকবে
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
@@ -25,34 +23,70 @@ class MainViewModel : ViewModel() {
     }
 
     private fun runSecurityCheck() {
-        // viewModelScope.launch মানে এটি ব্যাকগ্রাউন্ড থ্রেডে চলবে, UI আটকাবে না
         viewModelScope.launch(Dispatchers.Default) {
-            // ১. ইউজারকে লোগো দেখানোর জন্য কৃত্রিম ডিলে (২ সেকেন্ড)
-            delay(2000)
-
-            // ২. ভারী সিকিউরিটি চেক রান করা (এখানে আপনার JADX ব্রেকারগুলো থাকবে)
+            // ১. ব্যাকগ্রাউন্ডে সিকিউরিটি লজিক রান করা
             val isSecure = performHeavySecurityAlgos()
+            
+            // ২. মিনিমাম ডিলে যাতে ইউজার ব্র্যান্ডিং দেখতে পারে
+            delay(1500) 
 
-            // ৩. কাজ শেষ, এবার UI-কে হোম স্ক্রিনে পাঠাও
+            // ৩. স্টেট আপডেট (এটি UI-তে অ্যানিমেশন ট্রিগার করবে)
             _uiState.value = UiState.Home(isSecure = isSecure)
         }
     }
 
-    // 🔥 আপনার JADX Breakers এবং সিকিউরিটি লজিক এখানে থাকবে
-    // এটি ব্যাকগ্রাউন্ডে রান হবে তাই অ্যাপ ফ্রিজ হবে না
     private fun performHeavySecurityAlgos(): Boolean {
-        // Time Bomb Check
-        if (System.currentTimeMillis() < 0) return false
-
-        // Fake Reflection Check to confuse decompilers
-        try {
-             val m = Class.forName("java.lang.String").getMethod("length")
-             m.invoke("test")
+        return try {
+            runJadxBreakers() // আপনার দেওয়া সিকিউরিটি লজিক
+            true
         } catch (e: Exception) {
-            // হ্যাকাররা কনফিউজড হবে, কিন্তু অ্যাপ ক্র্যাশ করবে না
+            false
+        }
+    }
+
+    // =========================================================
+    // 🔥 JADX BREAKERS & ANTI-DECOMPILE LOGIC
+    // =========================================================
+    private fun runJadxBreakers() {
+        // 1. Time Bomb Trap
+        if (System.currentTimeMillis() < 0) {
+            while (true) { /* Emulator Trap */ }
         }
 
-        // ধরলাম সব ঠিক আছে
-        return true
+        // 2. Scary Logic (Safe but confuses analysts)
+        if (1 == 2) {
+            try { Runtime.getRuntime().exec("restart") } catch (e: Exception) {}
+        }
+
+        // 3. Reflection Invoke
+        try {
+            val m = Class.forName("java.lang.String").getMethod("valueOf", Int::class.java)
+            m.invoke(null, 123)
+        } catch (e: Exception) {}
+
+        // 4. Decrypt Strings
+        decryptString("ifmmp") 
+        
+        // 5. Bytecode Confusion
+        confuseBytecode(5)
+        
+        // 6. Switch Bomb
+        switchBomb()
     }
+
+    private fun decryptString(s: String): String = s.map { it - 1 }.joinToString("")
+
+    private fun confuseBytecode(x: Int): Int {
+        return try { x } finally { return x }
+    }
+
+    private fun switchBomb() {
+        when ((System.nanoTime() % 10).toInt()) {
+            1 -> { delayDummy() }
+            2 -> { delayDummy() }
+            else -> {}
+        }
+    }
+    
+    private fun delayDummy() { /* Small noise */ }
 }
