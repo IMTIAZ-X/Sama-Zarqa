@@ -21,32 +21,52 @@
 #-renamesourcefileattribute SourceFile
 
 
+## =========================================================
+# ADVANCED HARDENING & AGGRESSIVE OBFUSCATION
+# =========================================================
+
 # ---------------------------------------------------------
-# 1. TOTAL METADATA STRIPPING
+# 1. THE "TOTAL WIPE": STRIP ALL TRACES
 # ---------------------------------------------------------
-# Forcefully remove source file names and line numbers to hide code structure
+# Removes every bit of debug info. Stack traces will be unreadable.
 -renamesourcefileattribute ''
 -keepattributes !SourceFile,!LineNumberTable
-
-# Remove local variable tables (Highly recommended for security)
 -keepattributes !LocalVariableTable,!LocalVariableTypeTable
 
+-obfuscationdictionary dictionary.txt
+-classobfuscationdictionary dictionary.txt
+-packageobfuscationdictionary dictionary.txt
+
 # ---------------------------------------------------------
-# 2. AGGRESSIVE OBFUSCATION & SHRINKING
+# 2. DICTIONARY OBFUSCATION (The "Alien Code" look)
 # ---------------------------------------------------------
-# Repackage all classes into a single root to confuse decompilers
+# This makes your classes and methods look like 'a', 'b', 'I1l', etc.
+-useuniqueclassmembernames
+-overloadaggressively
 -repackageclasses ''
 -allowaccessmodification
 -mergeinterfacesaggressively
--overloadaggressively
-
-# Use optimization passes (3 is optimal for R8/AGP 9.0)
--optimizationpasses 3
 
 # ---------------------------------------------------------
-# 3. KOTLIN & COMPOSE ESSENTIALS (Required for the app to run)
+# 3. OPTIMIZATION & PERFORMANCE HARDENING
 # ---------------------------------------------------------
-# We keep only the absolute minimum required for Kotlin/Compose to not crash
+-optimizationpasses 5
+-dontpreverify
+
+# Remove all Android Logs (Security & Size improvement)
+# This prevents hackers from reading your log outputs.
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+}
+
+# ---------------------------------------------------------
+# 4. KOTLIN & COMPOSE PROTECTION (STRICT MINIMUM)
+# ---------------------------------------------------------
+# Compose needs these to run, but we strip everything else.
 -keepattributes Signature,EnclosingMethod,InnerClasses,*Annotation*
 
 -keepclassmembers class * {
@@ -54,18 +74,38 @@
     @androidx.compose.runtime.ReadOnlyComposable *;
 }
 
-# Keep native methods for JNI security
+# Keep Kotlin Metadata but minimize its contents
+-keep class kotlin.Metadata { *; }
+
+# Strip Kotlin assertions and null checks (Reduces size)
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
+    static void checkExpressionValueIsNotNull(java.lang.Object, java.lang.String);
+}
+
+# ---------------------------------------------------------
+# 5. ENTRY POINT PROTECTION (CRITICAL)
+# ---------------------------------------------------------
+# Only keep what Android OS needs to start the app. 
+# Everything else gets renamed or deleted.
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+
+# ---------------------------------------------------------
+# 6. SECURITY & JNI (NATIVE) HARDENING
+# ---------------------------------------------------------
 -keepclasseswithmembernames class * {
     native <methods>;
 }
 
-# Hardening for WebView if used
+# WebView security (if you ever use it)
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# ---------------------------------------------------------
-# 4. CLEANUP
-# ---------------------------------------------------------
+# Disable all ProGuard notes and warnings to hide the process
 -dontnote **
 -dontwarn **
