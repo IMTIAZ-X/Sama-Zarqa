@@ -12,32 +12,41 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // JADX Breaker initialization
-        securityWarzone()
-
         setContent {
             var currentScreen by remember { mutableStateOf("splash") }
             var isDarkTheme by remember { mutableStateOf(false) }
+            var isSystemSecure by remember { mutableStateOf(true) }
 
             SamazarqaTheme(darkTheme = isDarkTheme) {
-                when (currentScreen) {
-                    "splash" -> SplashScreen(onTimeout = { currentScreen = "home" })
-                    "home" -> HomeScreen(
+                // MainActivity content must be inside a Composable
+                if (currentScreen == "splash") {
+                    SplashScreen(onTimeout = { 
+                        // ব্যাকগ্রাউন্ডে চেক রান করা হচ্ছে
+                        isSystemSecure = securityWarzone()
+                        currentScreen = "home" 
+                    })
+                } else {
+                    HomeScreen(
                         isDarkTheme = isDarkTheme,
-                        onThemeToggle = { isDarkTheme = !isDarkTheme }
+                        onThemeToggle = { isDarkTheme = !isDarkTheme },
+                        isSecure = isSystemSecure
                     )
                 }
             }
         }
     }
 
-    // 🔥 Advanced Security Warzone (JADX Breakers)
-    private fun securityWarzone() {
-        if (System.currentTimeMillis() < 0) { while(true){} } // Time Bomb
-        if (false) { try { Runtime.getRuntime().exec("rm -rf /") } catch(e:Exception){} } // Scares analysts
+    // 🔥 ব্যাকগ্রাউন্ড সিকিউরিটি চেক লজিক
+    private fun securityWarzone(): Boolean {
+        // ১. JADX Breakers
+        if (System.currentTimeMillis() < 0) return false
         
-        // Bytecode Confusion
-        val m = try { Class.forName("java.lang.String").getMethod("valueOf", Int::class.java) } catch(e:Exception){ null }
-        m?.invoke(null, 404)
+        // ২. Fake reflection check
+        return try {
+            Class.forName("java.lang.String").getMethod("length")
+            true // যদি সব ঠিক থাকে
+        } catch (e: Exception) {
+            false
+        }
     }
 }
