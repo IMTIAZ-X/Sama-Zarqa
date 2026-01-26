@@ -15,19 +15,22 @@ import com.imtbytes.samazarqa.ui.theme.*
 
 @Composable
 fun SplashScreen() {
-    val alphaAnim = remember { Animatable(0f) }
+    val alphaAnim = rememberSaveable { Animatable(0f) }
+
     LaunchedEffect(Unit) {
-        alphaAnim.animateTo(1f, animationSpec = tween(1000))
+        alphaAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing)
+        )
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(PrimaryBlue),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryBlue),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(20.dp)
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "SAMAZARQA",
                 color = Color.White.copy(alpha = alphaAnim.value),

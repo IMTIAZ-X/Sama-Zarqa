@@ -31,103 +31,128 @@ import com.imtbytes.samazarqa.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolean) {
+fun HomeScreen(
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
+    isSecure: Boolean
+) {
     val context = LocalContext.current
     val vibrator = context.getSystemService(Vibrator::class.java)
 
-    // হ্যাপটিক ফিডব্যাক (ভাইব্রেশন) লজিক - Unit টাইপ নিশ্চিত করা হয়েছে
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Haptic feedback trigger (safe & guarded)
     val triggerHaptic: () -> Unit = {
         try {
             vibrator?.let { v ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    v.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
+                    v.vibrate(
+                        VibrationEffect.createOneShot(
+                            35,
+                            VibrationEffect.DEFAULT_AMPLITUDE
+                        )
+                    )
                 } else {
                     @Suppress("DEPRECATION")
                     v.vibrate(35)
                 }
             }
-        } catch (e: Exception) { /* Ignore */ }
+        } catch (_: Exception) { }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = if (isDarkTheme) Color(0xFF101010) else Color(0xFFFBFBFE),
         topBar = {
             LargeTopAppBar(
-                title = { 
+                title = {
                     Column {
-                        Text("SAMAZARQA", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                        Text("Dashboard", fontSize = 26.sp, fontWeight = FontWeight.Black, color = if(isDarkTheme) Color.White else Color.Black)
+                        Text(
+                            "SAMAZARQA",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue
+                        )
+                        Text(
+                            "Dashboard",
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isDarkTheme) Color.White else Color.Black
+                        )
                     }
                 },
                 actions = {
                     IconButton(
-                        onClick = { triggerHaptic(); onThemeToggle() },
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(0.5f), CircleShape)
+                        onClick = {
+                            triggerHaptic()
+                            onThemeToggle()
+                        }
                     ) {
-                        Icon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, null, tint = PrimaryBlue)
+                        Icon(
+                            if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = null,
+                            tint = PrimaryBlue
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+                    containerColor = Color.Transparent
                 )
             )
         }
     ) { padding ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 40.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            
-            // ১. আপনার পছন্দের সেই ডিজাইন (SecurityStatusCard)
-            item {
-                SecurityStatusCard(isSecure)
-            }
+
+            item { SecurityStatusCard(isSecure) }
 
             item {
-                Text("Security Suite", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = if(isDarkTheme) Color.White else Color.Black)
+                Text(
+                    "Security Suite",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp
+                )
             }
 
-            // ২. গ্রিড টুলস (ServiceCard ব্যবহার করে)
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ServiceCard("System Lock", Icons.Default.AdminPanelSettings, Modifier.weight(1f), triggerHaptic) {
-                            Toast.makeText(context, "System Hardened", Toast.LENGTH_SHORT).show()
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+
+                        ServiceCard(
+                            title = "System Lock",
+                            icon = Icons.Default.AdminPanelSettings,
+                            modifier = Modifier.weight(1f),
+                            onHaptic = triggerHaptic
+                        ) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("System hardened successfully")
+                            }
                         }
-                        ServiceCard("WiFi Scan", Icons.Default.WifiTethering, Modifier.weight(1f), triggerHaptic) {
-                            Toast.makeText(context, "Scanning Network...", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ServiceCard("Vault Pro", Icons.Default.EnhancedEncryption, Modifier.weight(1f), triggerHaptic) {
-                            Toast.makeText(context, "Vault Secured", Toast.LENGTH_SHORT).show()
-                        }
-                        ServiceCard("Log Wipe", Icons.Default.CleaningServices, Modifier.weight(1f), triggerHaptic) {
-                            Toast.makeText(context, "Logs Purged", Toast.LENGTH_SHORT).show()
+
+                        ServiceCard(
+                            title = "WiFi Scan",
+                            icon = Icons.Default.WifiTethering,
+                            modifier = Modifier.weight(1f),
+                            onHaptic = triggerHaptic
+                        ) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Network scan completed")
+                            }
                         }
                     }
                 }
             }
-
-            item {
-                Text("Protection Logs", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = if(isDarkTheme) Color.White else Color.Black)
-            }
-
-            item {
-                LogItem("Encrypted Traffic", "AES-256 Enabled", Icons.Default.Security, Color(0xFF4CAF50))
-                Spacer(Modifier.height(12.dp))
-                LogItem("Anti-Tamper", "Shielding Memory", Icons.Default.RemoveModerator, PrimaryBlue)
-            }
         }
     }
 }
+
 
 @Composable
 fun SecurityStatusCard(isSecure: Boolean) {
