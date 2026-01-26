@@ -12,3 +12,6 @@ val Black = Color(0xFF000000)
 
 val BackgroundLight = Color(0xFFFBFDFF)
 val SurfaceLight = Color(0xFFFFFFFF)
+
+val SuccessGreen = Color(0xFF2E7D32)
+val ErrorRed = Color(0xFFC62828)
