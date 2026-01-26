@@ -65,7 +65,7 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                                 noteText = ""
                             }
                         }) {
-                            Icon(Icons.Default.Save, contentDescription = null, tint = BrandBlue)
+                            Icon(Icons.Default.Save, contentDescription = null, tint = PrimaryBlue)
                         }
                     }
                 )
