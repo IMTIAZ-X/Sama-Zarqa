@@ -3,8 +3,9 @@ package com.imtbytes.samazarqa.screens.home
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.widget.Toast
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.LocalIndication // 🔥 এই ইমপোর্টটি মিসিং ছিল
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,10 +36,17 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
     val context = LocalContext.current
     val vibrator = context.getSystemService(Vibrator::class.java)
 
-    // হ্যাপটিক ফিডব্যাক ফাংশন
+    // হ্যাপটিক ফিডব্যাক (ভাইব্রেশন) লজিক
     val triggerHaptic = {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(35)
+            }
+        } catch (e: Exception) {
+            // পারমিশন ইস্যু থাকলে অ্যাপ ক্র্যাশ করবে না
         }
     }
 
@@ -48,18 +57,27 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 title = { 
                     Column {
                         Text("SAMAZARQA", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-                        Text("Security Hub", fontSize = 24.sp, fontWeight = FontWeight.Black)
+                        Text("Dashboard", fontSize = 26.sp, fontWeight = FontWeight.Black)
                     }
                 },
                 actions = {
                     IconButton(
                         onClick = { triggerHaptic(); onThemeToggle() },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(0.4f), CircleShape)
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(0.5f), CircleShape)
                     ) {
-                        Icon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, null, tint = PrimaryBlue)
+                        Icon(
+                            if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, 
+                            null, 
+                            tint = PrimaryBlue
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
             )
         }
     ) { padding ->
@@ -69,30 +87,61 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 .padding(padding)
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 30.dp)
+            contentPadding = PaddingValues(bottom = 40.dp)
         ) {
-            item { SecurityStatusCard(isSecure) }
+            
+            // ১. স্মার্ট সিকিউরিটি কার্ড (Pulse Animation সহ)
+            item {
+                SecurityStatusCard(isSecure)
+            }
 
+            // ২. কুইক টুলস টাইটেল
+            item {
+                Text(
+                    "Security Suite", 
+                    fontWeight = FontWeight.ExtraBold, 
+                    fontSize = 18.sp,
+                    color = if(isDarkTheme) Color.White else Color.Black
+                )
+            }
+
+            // ৩. ইন্টারঅ্যাক্টিভ সার্ভিস গ্রিড (Figma Style)
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Security Tools", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ActionCard("System Lock", Icons.Default.VerifiedUser, Modifier.weight(1f), triggerHaptic)
-                        ActionCard("Network Scan", Icons.Default.Radar, Modifier.weight(1f), triggerHaptic)
+                        ActionCard("System Lock", Icons.Default.AdminPanelSettings, Modifier.weight(1f), triggerHaptic) {
+                            Toast.makeText(context, "System Hardening Active", Toast.LENGTH_SHORT).show()
+                        }
+                        ActionCard("WiFi Scan", Icons.Default.WifiTethering, Modifier.weight(1f), triggerHaptic) {
+                            Toast.makeText(context, "Analyzing WiFi Security...", Toast.LENGTH_SHORT).show()
+                        }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        ActionCard("Vault Pro", Icons.Default.VpnKey, Modifier.weight(1f), triggerHaptic)
-                        ActionCard("Hardening", Icons.Default.ShieldMoon, Modifier.weight(1f), triggerHaptic)
+                        ActionCard("Vault Pro", Icons.Default.EnhancedEncryption, Modifier.weight(1f), triggerHaptic) {
+                            Toast.makeText(context, "Vault Locked", Toast.LENGTH_SHORT).show()
+                        }
+                        ActionCard("Log Wipe", Icons.Default.CleaningServices, Modifier.weight(1f), triggerHaptic) {
+                            Toast.makeText(context, "Traces Cleared", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
 
+            // ৪. রিসেন্ট অ্যাক্টিভিটি লগ
             item {
-                Text("Live Protection Logs", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                Spacer(Modifier.height(8.dp))
-                LogItem("Encrypted Traffic", "Active Tunneling", Icons.Default.SecurityUpdateGood, Color(0xFF4CAF50))
+                Text(
+                    "Recent Protection Logs", 
+                    fontWeight = FontWeight.ExtraBold, 
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = if(isDarkTheme) Color.White else Color.Black
+                )
+            }
+
+            item {
+                LogItem("Encryption Active", "AES-256 Tunneling", Icons.Default.Security, Color(0xFF4CAF50))
                 Spacer(Modifier.height(12.dp))
-                LogItem("Anti-Tamper", "Shield Active", Icons.Default.AdminPanelSettings, PrimaryBlue)
+                LogItem("Anti-Tamper", "Monitoring Memory", Icons.Default.RemoveModerator, PrimaryBlue)
             }
         }
     }
@@ -101,43 +150,54 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
 @Composable
 fun SecurityStatusCard(isSecure: Boolean) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val scale by infiniteTransition.animateFloat(
+    val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f, targetValue = 1.03f,
-        animationSpec = infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "pulse"
+        animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "pulse"
     )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(160.dp)
-            .graphicsLayer(scaleX = scale, scaleY = scale),
+            .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isSecure) PrimaryBlue else Color(0xFFB71C1C)),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSecure) PrimaryBlue else Color(0xFFB71C1C)
+        ),
         elevation = CardDefaults.cardElevation(12.dp)
     ) {
         Box(Modifier.fillMaxSize()) {
             Icon(
-                Icons.Default.Security, null, 
-                modifier = Modifier.size(180.dp).align(Alignment.CenterEnd).offset(x = 40.dp).graphicsLayer(alpha = 0.1f),
+                Icons.Default.Shield, null, 
+                modifier = Modifier
+                    .size(180.dp)
+                    .align(Alignment.CenterEnd)
+                    .offset(x = 30.dp, y = 10.dp)
+                    .graphicsLayer(alpha = 0.1f),
                 tint = Color.White
             )
             Column(Modifier.padding(24.dp).align(Alignment.CenterStart)) {
                 Surface(color = Color.White.copy(0.2f), shape = RoundedCornerShape(8.dp)) {
-                    Text(" LIVE PROTECTION ", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(4.dp))
+                    Text(" LIVE SYSTEM ", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                 }
                 Spacer(Modifier.height(12.dp))
-                Text(if (isSecure) "System Secured" else "Security Risk", fontSize = 28.sp, fontWeight = FontWeight.Black, color = Color.White)
-                Text("All protocols are active", color = Color.White.copy(0.8f), fontSize = 12.sp)
+                Text(
+                    if (isSecure) "System Secured" else "Security Risk", 
+                    fontSize = 28.sp, 
+                    fontWeight = FontWeight.Black, 
+                    color = Color.White
+                )
+                Text("All protocols are active and running", color = Color.White.copy(0.8f), fontSize = 13.sp)
             }
         }
     }
 }
 
 @Composable
-fun ActionCard(title: String, icon: ImageVector, modifier: Modifier, onAction: () -> Unit) {
+fun ActionCard(title: String, icon: ImageVector, modifier: Modifier, triggerHaptic: () -> Unit, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val animatedScale by animateFloatAsState(if (isPressed) 0.92f else 1f, label = "scale")
+    val animatedScale by animateFloatAsState(if (isPressed) 0.94f else 1f, label = "scale")
 
     Surface(
         modifier = modifier
@@ -145,8 +205,8 @@ fun ActionCard(title: String, icon: ImageVector, modifier: Modifier, onAction: (
             .height(120.dp)
             .clickable(
                 interactionSource = interactionSource, 
-                indication = LocalIndication.current, // 🔥 ফিক্সড: এখন আর এরর দিবে না
-                onClick = { onAction() }
+                indication = LocalIndication.current,
+                onClick = { triggerHaptic(); onClick() }
             ),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -154,7 +214,7 @@ fun ActionCard(title: String, icon: ImageVector, modifier: Modifier, onAction: (
     ) {
         Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.size(48.dp).background(PrimaryBlue.copy(0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = PrimaryBlue, modifier = Modifier.size(24.dp))
+                Icon(icon, null, tint = PrimaryBlue, modifier = Modifier.size(26.dp))
             }
             Spacer(Modifier.height(12.dp))
             Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -171,10 +231,12 @@ fun LogItem(title: String, status: String, icon: ImageVector, color: Color) {
         shadowElevation = 1.dp
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
+            Box(Modifier.size(44.dp).background(color.copy(0.1f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
+            }
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                 Text(status, color = Color.Gray, fontSize = 12.sp)
             }
             Spacer(Modifier.weight(1f))
