@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.LocalIndication // 🔥 এই ইমপোর্টটি মিসিং ছিল
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,10 +34,10 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
     val context = LocalContext.current
     val vibrator = context.getSystemService(Vibrator::class.java)
 
-    // হ্যাপটিক ফিডব্যাক ফাংশন (ক্লিক করলে ফোন ভাইব্রেট হবে)
+    // হ্যাপটিক ফিডব্যাক ফাংশন
     val triggerHaptic = {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrator?.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE))
         }
     }
 
@@ -71,11 +71,8 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
             verticalArrangement = Arrangement.spacedBy(20.dp),
             contentPadding = PaddingValues(bottom = 30.dp)
         ) {
-            
-            // ১. সিকিউরিটি স্ট্যাটাস কার্ড (Animated Pulse)
             item { SecurityStatusCard(isSecure) }
 
-            // ২. গ্রিড টুলস (Figma Home Service Style)
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text("Security Tools", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
@@ -90,7 +87,6 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 }
             }
 
-            // ৩. অ্যাক্টিভিটি লগস
             item {
                 Text("Live Protection Logs", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                 Spacer(Modifier.height(8.dp))
@@ -131,7 +127,7 @@ fun SecurityStatusCard(isSecure: Boolean) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(if (isSecure) "System Secured" else "Security Risk", fontSize = 28.sp, fontWeight = FontWeight.Black, color = Color.White)
-                Text("All protocols are active and encrypted", color = Color.White.copy(0.8f), fontSize = 12.sp)
+                Text("All protocols are active", color = Color.White.copy(0.8f), fontSize = 12.sp)
             }
         }
     }
@@ -147,7 +143,11 @@ fun ActionCard(title: String, icon: ImageVector, modifier: Modifier, onAction: (
         modifier = modifier
             .graphicsLayer(scaleX = animatedScale, scaleY = animatedScale)
             .height(120.dp)
-            .clickable(interactionSource = interactionSource, indication = LocalIndication.current) { onAction() },
+            .clickable(
+                interactionSource = interactionSource, 
+                indication = LocalIndication.current, // 🔥 ফিক্সড: এখন আর এরর দিবে না
+                onClick = { onAction() }
+            ),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isPressed) 2.dp else 6.dp
