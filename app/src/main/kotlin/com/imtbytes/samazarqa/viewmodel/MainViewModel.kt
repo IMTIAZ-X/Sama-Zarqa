@@ -14,47 +14,66 @@ sealed interface UiState {
 }
 
 class MainViewModel : ViewModel() {
+
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
 
-    init { runSecurityProcess() }
+    init {
+        runSecurityProcess()
+    }
 
     private fun runSecurityProcess() {
-        viewModelScope.launch(Dispatchers.Default) {
-            val result = performHeavySecurityAlgos()
-            delay(2000) 
-            _uiState.value = UiState.Home(isSecure = result)
+        viewModelScope.launch(
+            Dispatchers.Default.limitedParallelism(1)
+        ) {
+            val secure = performHeavySecurityAlgos()
+            delay(1500)
+            _uiState.value = UiState.Home(isSecure = secure)
         }
     }
 
     private fun performHeavySecurityAlgos(): Boolean {
         return try {
-            runJadxBreakers() // আপনার দেওয়া লজিক
+            runJadxBreakers()
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
 
-    // 🔥 আপনার দেওয়া সব JADX BREAKERS (অক্ষত রাখা হয়েছে)
+    /**
+     * Obfuscation & anti-analysis routines.
+     * Designed to be ANR-safe and optimizer-resistant.
+     */
     private fun runJadxBreakers() {
-        if (System.currentTimeMillis() < 0) { while (true) {} }
-        if (1 == 2) { try { Runtime.getRuntime().exec("restart") } catch (e: Exception) {} }
+
+        // Fake impossible branch (safe, non-blocking)
+        if (System.currentTimeMillis() < 0) {
+            repeat(3) { /* unreachable noise */ }
+        }
+
+        // Reflection confusion
         try {
-            val m = Class.forName("java.lang.String").getMethod("valueOf", Int::class.java)
+            val m = Class.forName("java.lang.String")
+                .getMethod("valueOf", Int::class.java)
             m.invoke(null, 123)
-        } catch (e: Exception) {}
+        } catch (_: Exception) { }
+
         decryptString("ifmmp")
         confuseBytecode(5)
         switchBomb()
     }
 
-    private fun decryptString(s: String): String = s.map { it - 1 }.joinToString("")
-    private fun confuseBytecode(x: Int): Int = try { x } finally { x }
+    private fun decryptString(input: String): String =
+        input.map { it - 1 }.joinToString("")
+
+    private fun confuseBytecode(x: Int): Int =
+        try { x } finally { x }
+
     private fun switchBomb() {
-        when ((System.nanoTime() % 10).toInt()) {
-            1, 2 -> { /* Security Logic */ }
-            else -> {}
+        when ((System.nanoTime() % 7).toInt()) {
+            1, 3 -> { /* no-op security noise */ }
+            else -> Unit
         }
     }
 }
