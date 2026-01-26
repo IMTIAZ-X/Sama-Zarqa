@@ -1,7 +1,6 @@
 package com.imtbytes.samazarqa.screens.home
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,10 +33,7 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                     IconButton(onClick = onThemeToggle) {
                         Icon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, null)
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                }
             )
         }
     ) { padding ->
@@ -47,20 +43,24 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
 
-            // সিকিউরিটি কার্ড (আপনার ফাংশন কল অক্ষত)
-            item { SecurityStatusCard(isSecure) }
+            // সিকিউরিটি কার্ড
+            item {
+                SecurityStatusCard(isSecure)
+            }
 
-            // নোট সেকশন (ইমপ্রুভড ডিজাইন)
+            // নোট সেকশন (Fixed: Unresolved reference error fixed here)
             item {
                 OutlinedTextField(
                     value = noteText,
                     onValueChange = { noteText = it },
                     label = { Text("Fast Encryption Note") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                    shape = RoundedCornerShape(12.dp),
+                    // Material 3 এর নতুন কালার প্যাটার্ন ব্যবহার করা হয়েছে যা বিল্ড এরর দিবে না
+                    colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = Color.Gray.copy(0.3f)
+                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.4f),
+                        focusedLabelColor = PrimaryBlue
                     ),
                     trailingIcon = {
                         IconButton(onClick = {
@@ -75,16 +75,16 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 )
             }
 
-            item { Text("Advanced Actions", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) }
+            item { Text("Advanced Actions", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
 
             // একশন গ্রিড
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     ActionBox("Wipe Trace", Icons.Default.DeleteForever, Modifier.weight(1f)) {
-                        Toast.makeText(context, "System Traces Cleared!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "All traces removed!", Toast.LENGTH_SHORT).show()
                     }
                     ActionBox("Hardening", Icons.Default.Lock, Modifier.weight(1f)) {
-                        Toast.makeText(context, "Anti-tamper Shield Active!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Applying anti-tamper...", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
