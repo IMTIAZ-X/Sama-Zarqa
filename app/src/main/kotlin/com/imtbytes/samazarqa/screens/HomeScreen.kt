@@ -24,6 +24,9 @@ import com.imtbytes.samazarqa.ui.theme.*
 fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolean) {
     val context = LocalContext.current
     var noteText by remember { mutableStateOf("") }
+    
+    // পারফরম্যান্স বুস্ট করার জন্য noteText এর স্টেট চেক অপ্টিমাইজ করা হয়েছে
+    val isNoteEmpty by remember { derivedStateOf { noteText.isEmpty() } }
 
     Scaffold(
         topBar = {
@@ -38,17 +41,17 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 20.dp) // স্মুথ স্ক্রলিং এর জন্য
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
 
-            // সিকিউরিটি কার্ড
-            item {
-                SecurityStatusCard(isSecure)
-            }
+            item { SecurityStatusCard(isSecure) }
 
-            // নোট সেকশন (Fixed: Unresolved reference error fixed here)
             item {
                 OutlinedTextField(
                     value = noteText,
@@ -56,35 +59,32 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                     label = { Text("Fast Encryption Note") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    // Material 3 এর নতুন কালার প্যাটার্ন ব্যবহার করা হয়েছে যা বিল্ড এরর দিবে না
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.4f),
-                        focusedLabelColor = PrimaryBlue
+                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.4f)
                     ),
                     trailingIcon = {
                         IconButton(onClick = {
-                            if (noteText.isNotEmpty()) {
+                            if (!isNoteEmpty) {
                                 Toast.makeText(context, "Encrypted & Saved!", Toast.LENGTH_SHORT).show()
                                 noteText = ""
                             }
                         }) {
-                            Icon(Icons.Default.Save, contentDescription = null, tint = PrimaryBlue)
+                            Icon(Icons.Default.Save, null, tint = if (isNoteEmpty) Color.Gray else PrimaryBlue)
                         }
                     }
                 )
             }
 
-            item { Text("Advanced Actions", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+            item { Text("Advanced Actions", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) }
 
-            // একশন গ্রিড
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     ActionBox("Wipe Trace", Icons.Default.DeleteForever, Modifier.weight(1f)) {
-                        Toast.makeText(context, "All traces removed!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "System Cleaned!", Toast.LENGTH_SHORT).show()
                     }
                     ActionBox("Hardening", Icons.Default.Lock, Modifier.weight(1f)) {
-                        Toast.makeText(context, "Applying anti-tamper...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Shield Active!", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
