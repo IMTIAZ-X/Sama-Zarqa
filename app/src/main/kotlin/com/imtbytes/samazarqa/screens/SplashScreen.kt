@@ -15,12 +15,12 @@ import com.imtbytes.samazarqa.ui.theme.*
 
 @Composable
 fun SplashScreen() {
-    val alphaAnim = rememberSaveable { Animatable(0f) }
+    val alphaAnim = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         alphaAnim.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing)
+            animationSpec = tween(900, easing = FastOutSlowInEasing)
         )
     }
 
