@@ -30,7 +30,7 @@
 -ignorewarnings
 -dontpreverify
 -verbose
-
+-renamesourcefileattribute ""
 
 # 1. MAX SHRINK + STRUCTURE BREAK
 -dontskipnonpubliclibraryclasses
@@ -59,7 +59,6 @@
 # 5. KOTLIN (MINIMUM SURVIVAL SET)
 -keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*
 #-keep class kotlin.Metadata { *; }
--renamesourcefileattribute SourceFile
 
 
 # 6. JETPACK COMPOSE (STRICT)
