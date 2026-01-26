@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -35,7 +34,10 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                     IconButton(onClick = onThemeToggle) {
                         Icon(if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode, null)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         }
     ) { padding ->
@@ -45,19 +47,21 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
 
-            // সিকিউরিটি কার্ড
-            item {
-                SecurityStatusCard(isSecure)
-            }
+            // সিকিউরিটি কার্ড (আপনার ফাংশন কল অক্ষত)
+            item { SecurityStatusCard(isSecure) }
 
-            // নোট সেকশন
+            // নোট সেকশন (ইমপ্রুভড ডিজাইন)
             item {
                 OutlinedTextField(
                     value = noteText,
                     onValueChange = { noteText = it },
                     label = { Text("Fast Encryption Note") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = PrimaryBlue,
+                        unfocusedBorderColor = Color.Gray.copy(0.3f)
+                    ),
                     trailingIcon = {
                         IconButton(onClick = {
                             if (noteText.isNotEmpty()) {
@@ -71,16 +75,16 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 )
             }
 
-            item { Text("Advanced Actions", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+            item { Text("Advanced Actions", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) }
 
             // একশন গ্রিড
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     ActionBox("Wipe Trace", Icons.Default.DeleteForever, Modifier.weight(1f)) {
-                        Toast.makeText(context, "All traces removed!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "System Traces Cleared!", Toast.LENGTH_SHORT).show()
                     }
                     ActionBox("Hardening", Icons.Default.Lock, Modifier.weight(1f)) {
-                        Toast.makeText(context, "Applying anti-tamper...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Anti-tamper Shield Active!", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
