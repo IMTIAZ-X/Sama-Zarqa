@@ -28,7 +28,8 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
     val context = LocalContext.current
 
     Scaffold(
-        containerColor = if(isDarkTheme) Color(0xFF121212) else Color(0xFFF8F9FA), // Figma style background
+        // ফিক্সড: Figma স্টাইল ব্যাকগ্রাউন্ড
+        containerColor = if(isDarkTheme) Color(0xFF121212) else Color(0xFFF8F9FA),
         bottomBar = {
             // ফিউচার আপডেটে এখানে বটম নেভিগেশন যোগ করা যাবে
         }
@@ -37,12 +38,12 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp), // ফিগমা ডিজাইনে সাইডে স্পেস বেশি থাকে
+                .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             contentPadding = PaddingValues(top = 20.dp, bottom = 40.dp)
         ) {
             
-            // ১. টপ হেডার (User Greeting & Profile)
+            // ১. টপ হেডার
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -59,10 +60,10 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                             text = "Admin User",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if(isDarkTheme) Color.White else Black
+                            color = if(isDarkTheme) Color.White else Color.Black
                         )
                     }
-                    // থিম টগল বাটন (প্রোফাইল আইকনের মতো ডিজাইন)
+                    // থিম টগল
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -81,12 +82,12 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 }
             }
 
-            // ২. সার্চ বার (ফিগমা স্টাইল - ভিজ্যুয়াল অনলি)
+            // ২. সার্চ বার
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = if(isDarkTheme) Color(0xFF1E1E1E) else Color.White,
+                    color = if(isDarkTheme) Color(0xFF1E1E1E) else Color.White, // ফিক্সড: Color.White
                     shadowElevation = 4.dp
                 ) {
                     Row(
@@ -100,12 +101,12 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 }
             }
 
-            // ৩. মেইন ব্যানার (আপনার SecurityStatusCard - ফিগমা স্টাইলে রি-ডিজাইন করা)
+            // ৩. মেইন ব্যানার (SecurityStatusCard)
             item {
                 SecurityStatusCard(isSecure)
             }
 
-            // ৪. ক্যাটাগরি সেকশন টাইটেল
+            // ৪. ক্যাটাগরি সেকশন
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -116,19 +117,19 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                         "Security Suite",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = if(isDarkTheme) Color.White else Black
+                        color = if(isDarkTheme) Color.White else Color.Black
                     )
                     Text(
                         "See All",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = PrimaryBlue,
-                        modifier = Modifier.clickable { /* Future Action */ }
+                        modifier = Modifier.clickable { }
                     )
                 }
             }
 
-            // ৫. গ্রিড আইটেম (সার্ভিস অ্যাপের মতো টুলস)
+            // ৫. গ্রিড আইটেম
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -142,13 +143,14 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
                 }
             }
             
-            // ৬. রিসেন্ট অ্যাক্টিভিটি (Cleaning App এর 'Recent Booking' এর মতো)
+            // ৬. রিসেন্ট অ্যাক্টিভিটি
             item {
                 Text(
                     "Recent Activity",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    modifier = Modifier.padding(top = 10.dp)
+                    modifier = Modifier.padding(top = 10.dp),
+                    color = if(isDarkTheme) Color.White else Color.Black
                 )
             }
             
@@ -161,13 +163,12 @@ fun HomeScreen(isDarkTheme: Boolean, onThemeToggle: () -> Unit, isSecure: Boolea
     }
 }
 
-// 🔥 আপনার রাখা নির্দেশ অনুযায়ী লজিক অক্ষত, ডিজাইন ফিগমা স্টাইল
 @Composable
 fun SecurityStatusCard(isSecure: Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp), // ব্যানারের মতো বড় সাইজ
+            .height(180.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSecure) PrimaryBlue else Color(0xFFC62828)
@@ -175,11 +176,11 @@ fun SecurityStatusCard(isSecure: Boolean) {
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // ব্যাকগ্রাউন্ড ডেকোরেশন (সার্কেল)
+            // ব্যাকগ্রাউন্ড ডেকোরেশন
             Icon(
                 imageVector = Icons.Default.Shield,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.1f),
+                tint = Color.White.copy(alpha = 0.1f), // ফিক্সড: Color.White
                 modifier = Modifier
                     .size(200.dp)
                     .align(Alignment.BottomEnd)
@@ -193,11 +194,11 @@ fun SecurityStatusCard(isSecure: Boolean) {
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color.White.copy(alpha = 0.2f)
+                    color = Color.White.copy(alpha = 0.2f) // ফিক্সড: Color.White
                 ) {
                     Text(
                         text = if (isSecure) " PROTECTED " else " DANGER ",
-                        color = Color.White,
+                        color = Color.White, // ফিক্সড: Color.White
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -207,8 +208,8 @@ fun SecurityStatusCard(isSecure: Boolean) {
                 Text(
                     text = if (isSecure) "System is\nSecured" else "Security\nBreached!",
                     fontSize = 28.sp,
-                    fontWeight = FontWeight.White,
-                    color = Color.White,
+                    fontWeight = FontWeight.Bold, // ফিক্সড: FontWeight.White ছিল না, Bold হবে
+                    color = Color.White, // ফিক্সড: Color.White
                     lineHeight = 34.sp
                 )
             }
@@ -216,16 +217,15 @@ fun SecurityStatusCard(isSecure: Boolean) {
     }
 }
 
-// সার্ভিস অ্যাপ স্টাইল গ্রিড আইটেম
 @Composable
 fun ServiceCard(title: String, icon: ImageVector, modifier: Modifier) {
     Surface(
         modifier = modifier
             .height(110.dp)
-            .clickable { /* Action */ },
+            .clickable { },
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp // সফট শ্যাডো
+        shadowElevation = 2.dp
     ) {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -246,7 +246,6 @@ fun ServiceCard(title: String, icon: ImageVector, modifier: Modifier) {
     }
 }
 
-// রিসেন্ট লিস্ট আইটেম
 @Composable
 fun RecentActivityItem(title: String, subtitle: String, icon: ImageVector, iconColor: Color) {
     Surface(
