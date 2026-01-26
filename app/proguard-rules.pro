@@ -20,6 +20,9 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
+-renamesourcefileattribute ""
+-keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod
+
 # 0. CORE
 -optimizationpasses 5
 -overloadaggressively
@@ -30,7 +33,6 @@
 -ignorewarnings
 -dontpreverify
 -verbose
--renamesourcefileattribute ""
 
 # 1. MAX SHRINK + STRUCTURE BREAK
 -dontskipnonpubliclibraryclasses
@@ -57,7 +59,7 @@
 
 
 # 5. KOTLIN (MINIMUM SURVIVAL SET)
--keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*
+#-keepattributes Signature,InnerClasses,EnclosingMethod,*Annotation*
 #-keep class kotlin.Metadata { *; }
 
 
@@ -68,10 +70,10 @@
 
 
 # 7. REMOVE KOTLIN CHECKS (SIZE + HARDNESS)
--assumenosideeffects class kotlin.jvm.internal.Intrinsics {
-    static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
-    static void checkExpressionValueIsNotNull(java.lang.Object, java.lang.String);
-}
+# class kotlin.jvm.internal.Intrinsics {
+#    static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
+#    static void checkExpressionValueIsNotNull(java.lang.Object, java.lang.String);
+#}
 
 
 # 8. REMOVE ALL LOGS
@@ -85,15 +87,15 @@
 
 
 # 9. JNI HARDENING
--keepclasseswithmembernames class * {
-    native <methods>;
-}
+#-keepclasseswithmembernames class * {
+#    native <methods>;
+#}
 
 
 # 10. WEBVIEW JS INTERFACE
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
+#-keepclassmembers class * {
+#    @android.webkit.JavascriptInterface <methods>;
+#}
 
 
 # 11. ANTI-INFO
