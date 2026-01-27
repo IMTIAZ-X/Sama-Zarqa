@@ -7,14 +7,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.app.Application
+import com.imtbytes.samazarqa.data.AppPreferences
+import kotlinx.coroutines.flow.first
 
 sealed interface UiState {
     data object Loading : UiState
     data class Home(val isSecure: Boolean) : UiState
 }
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val prefs = AppPreferences(application)
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
     
@@ -22,8 +26,22 @@ class MainViewModel : ViewModel() {
 
     init {
         runSecurityProcess()
+        
+        viewModelScope.launch {
+            val isCompleted = prefs.isOnboardingCompleted.first()
+            if (isCompleted) {
+                _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+            }
+        }
     }
-
+    
+        fun completeOnboarding() {
+        viewModelScope.launch {
+            prefs.saveOnboardingStatus(true)
+            _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+        }
+    }
+/*
     private fun runSecurityProcess() {
         viewModelScope.launch(
             Dispatchers.Default.limitedParallelism(1)
@@ -34,6 +52,13 @@ class MainViewModel : ViewModel() {
            isSecurityCheckPassed = secure 
         }
     }
+    */
+     private fun runSecurityProcess() {
+        viewModelScope.launch(Dispatchers.Default.limitedParallelism(1)) {
+            isSecurityCheckPassed = performHeavySecurityAlgos()
+        }
+    }
+    
     
     fun navigateToHome() {
          _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
