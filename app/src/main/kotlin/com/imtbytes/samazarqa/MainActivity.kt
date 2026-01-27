@@ -34,7 +34,16 @@ class MainActivity : ComponentActivity() {
                     label = "ScreenSwitch"
                 ) { state ->
                     when (state) {
-                        is UiState.Loading -> SplashScreen()
+                       // is UiState.Loading -> SplashScreen()
+                       
+                       // ... আগের ইমপোর্টগুলো থাকবে
+                       is UiState.Loading -> SplashScreen(
+                          onOnboardingFinished = { 
+                          // অনবোর্ডিং শেষ হলে ভিউমডেলকে হোমে যেতে বলব
+                          viewModel.navigateToHome() 
+                         }
+                       )
+                        
                         is UiState.Home -> HomeScreen(
                             isDarkTheme = isDarkTheme,
                             onThemeToggle = { isDarkTheme = !isDarkTheme },
