@@ -39,8 +39,8 @@ class MainActivity : ComponentActivity() {
                        // ... আগের ইমপোর্টগুলো থাকবে
                        is UiState.Loading -> SplashScreen(
                           onOnboardingFinished = { 
-                          // অনবোর্ডিং শেষ হলে ভিউমডেলকে হোমে যেতে বলব
-                          viewModel.navigateToHome() 
+                          
+                          viewModel.completeOnboarding()
                          }
                        )
                         
