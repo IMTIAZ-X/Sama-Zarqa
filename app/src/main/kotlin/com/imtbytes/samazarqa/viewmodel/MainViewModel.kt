@@ -27,11 +27,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         runSecurityProcess()
+        checkAppStatus()
+        }
         
         private fun checkAppStatus() {
         viewModelScope.launch(Dispatchers.Default) {
             // ১. আগে সিকিউরিটি চেক শেষ করুন
-            isSecurityCheckPassed = performHeavySecurityAlgos()
+          //  isSecurityCheckPassed = performHeavySecurityAlgos()
             
             // ২. তারপর অনবোর্ডিং স্ট্যাটাস চেক করুন
             val isCompleted = prefs.isOnboardingCompleted.first()
@@ -47,7 +49,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
         }
     }
-  }
+  
 /*
     private fun runSecurityProcess() {
         viewModelScope.launch(
