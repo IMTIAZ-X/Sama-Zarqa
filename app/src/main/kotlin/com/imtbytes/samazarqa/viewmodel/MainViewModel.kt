@@ -47,6 +47,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
         }
     }
+  }
 /*
     private fun runSecurityProcess() {
         viewModelScope.launch(
