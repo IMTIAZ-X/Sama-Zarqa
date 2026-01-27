@@ -1,30 +1,52 @@
 package com.imtbytes.samazarqa.data
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-// ডাটাস্টোর ইনিশিয়ালাইজেশন
-private val Context.dataStore by preferencesDataStore(name = "settings")
-
+/**
+ * Modern DataStore-based preferences manager
+ * Handles onboarding completion state with reactive flows
+ */
 class AppPreferences(private val context: Context) {
+
     companion object {
+        private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+            name = "samazarqa_preferences"
+        )
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
-    // অনবোর্ডিং হয়েছে কি না তা চেক করার ফ্লো
+    /**
+     * Reactive flow for onboarding completion state
+     * Emits true if user has completed onboarding, false otherwise
+     */
     val isOnboardingCompleted: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[ONBOARDING_COMPLETED] ?: false
         }
 
-    // অনবোর্ডিং শেষ হলে ট্রু (true) সেভ করার ফাংশন
-    suspend fun saveOnboardingStatus(isCompleted: Boolean) {
+    /**
+     * Mark onboarding as completed
+     * Called when user finishes or skips onboarding
+     */
+    suspend fun setOnboardingCompleted() {
         context.dataStore.edit { preferences ->
-            preferences[ONBOARDING_COMPLETED] = isCompleted
+            preferences[ONBOARDING_COMPLETED] = true
+        }
+    }
+
+    /**
+     * Reset onboarding state (for testing/debugging)
+     */
+    suspend fun resetOnboarding() {
+        context.dataStore.edit { preferences ->
+            preferences[ONBOARDING_COMPLETED] = false
         }
     }
 }
