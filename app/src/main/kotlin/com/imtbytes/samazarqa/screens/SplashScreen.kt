@@ -1,12 +1,7 @@
 package com.imtbytes.samazarqa.screens.splash
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
@@ -35,99 +31,83 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
-    // অনবোর্ডিং শেষ হলে মূল স্ক্রিনে যাওয়ার জন্য কলব্যাক
     onOnboardingFinished: () -> Unit = {}
 ) {
     // --- Existing States ---
     val alphaAnim = remember { Animatable(0f) }
 
-    // --- New States for Transition & Onboarding ---
+    // --- New States for Transition ---
     var isSplashFinished by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        // Existing Animation
+        // Your original animation
         alphaAnim.animateTo(
             targetValue = 1f,
             animationSpec = tween(900, easing = FastOutSlowInEasing)
         )
 
-        // New: Wait a bit after animation finishes, then transition to onboarding
         delay(1500)
         isSplashFinished = true
     }
 
-    // Root Container with Background Color
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(PrimaryBlue),
         contentAlignment = Alignment.Center
     ) {
-        // Smooth transition between Splash and Onboarding
         AnimatedContent(
             targetState = isSplashFinished,
-            label = "SplashToOnboardingTransition",
+            label = "SplashToOnboarding",
             transitionSpec = {
                 fadeIn(animationSpec = tween(600)) togetherWith
                         fadeOut(animationSpec = tween(400))
             }
-        ) { showOnboarding ->
-            if (showOnboarding) {
-                // --- NEW ONBOARDING UI ---
+        ) { finished ->
+            if (finished) {
                 OnboardingContent(onFinished = onOnboardingFinished)
             } else {
-                // --- EXISTING SPLASH UI (Wrapped here, unchanged internal logic) ---
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "SAMAZARQA",
-                            color = Color.White.copy(alpha = alphaAnim.value),
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 6.sp
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 3.dp,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
+                // --- EXISTING UI UNTOUCHED ---
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "SAMAZARQA",
+                        color = Color.White.copy(alpha = alphaAnim.value),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(40.dp)
+                    )
                 }
             }
         }
     }
 }
 
-// ==========================================
-// NEW ADDITIONS: INTERNAL COMPOSABLES & DATA
-// ==========================================
-
-// Data model for individual onboarding pages
 private data class OnboardingPageData(
     val title: String,
     val description: String,
     val icon: ImageVector
 )
 
-// Sample Data matching the Figma concept vibe
 private val onboardingPages = listOf(
     OnboardingPageData(
         title = "Track Your Work",
-        description = "Monitor your daily tasks and progress seamlessly with intuitive tracking tools designed for efficiency.",
+        description = "Monitor your daily tasks and progress seamlessly with intuitive tracking tools.",
         icon = Icons.Rounded.Analytics
     ),
     OnboardingPageData(
         title = "Boost Productivity",
-        description = "Analyze your performance patterns to identify areas for improvement and maximize your output.",
+        description = "Analyze your performance patterns to identify areas for improvement.",
         icon = Icons.Rounded.TrendingUp
     ),
     OnboardingPageData(
         title = "Achieve Goals",
-        description = "Set milestones and finish tasks efficiently. Get started today and take control of your workflow.",
+        description = "Set milestones and finish tasks efficiently. Take control of your workflow.",
         icon = Icons.Rounded.DoneAll
     )
 )
@@ -142,21 +122,17 @@ private fun OnboardingContent(onFinished: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding() // Ensure content doesn't overlap status bars
+            .systemBarsPadding()
             .padding(24.dp)
     ) {
-        // Top Bar with Skip Button
+        // Skip Button Area
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .height(56.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            AnimatedVisibility(
-                visible = !isLastPage,
-                exit = fadeOut(),
-                enter = fadeIn()
-            ) {
+            if (!isLastPage) {
                 TextButton(onClick = onFinished) {
                     Text(
                         text = "Skip",
@@ -167,41 +143,35 @@ private fun OnboardingContent(onFinished: () -> Unit) {
             }
         }
 
-        // Pager Content Section
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) { pageIndex ->
-            val pageData = onboardingPages[pageIndex]
+            modifier = Modifier.weight(1f)
+        ) { index ->
+            val data = onboardingPages[index]
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Placeholder Icon/Image container styled like Figma
                 Box(
                     modifier = Modifier
-                        .size(200.dp)
+                        .size(180.dp)
                         .clip(RoundedCornerShape(32.dp))
                         .background(Color.White.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = pageData.icon,
+                        imageVector = data.icon,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(100.dp)
+                        modifier = Modifier.size(80.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 Text(
-                    text = pageData.title,
+                    text = data.title,
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
@@ -211,39 +181,34 @@ private fun OnboardingContent(onFinished: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = pageData.description,
+                    text = data.description,
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.White.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 24.sp
+                    textAlign = TextAlign.Center
                 )
             }
         }
 
-        // Bottom Controls Section (Indicators & Button)
+        // Bottom Navigation
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp),
+                .padding(vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Pager Indicators
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                repeat(pagerState.pageCount) { iteration ->
-                    val isSelected = pagerState.currentPage == iteration
-                    val width by animateDpAsState(
+            // Indicators
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(onboardingPages.size) { i ->
+                    val isSelected = pagerState.currentPage == i
+                    val width: Dp by animateDpAsState(
                         targetValue = if (isSelected) 24.dp else 8.dp,
-                        animationSpec = tween(300), label = "indicatorWidth"
+                        label = "width"
                     )
-                    val color by animateColorAsState(
+                    val color: Color by animateColorAsState(
                         targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.3f),
-                        animationSpec = tween(300), label = "indicatorColor"
+                        label = "color"
                     )
-
                     Box(
                         modifier = Modifier
                             .height(8.dp)
@@ -254,31 +219,18 @@ private fun OnboardingContent(onFinished: () -> Unit) {
                 }
             }
 
-            // Next / Get Started Button
             Button(
                 onClick = {
-                    if (isLastPage) {
-                        onFinished()
-                    } else {
-                        scope.launch {
-                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                        }
-                    }
+                    if (isLastPage) onFinished() 
+                    else scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = PrimaryBlue
-                ),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.height(50.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = PrimaryBlue),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                AnimatedContent(targetState = isLastPage, label = "ButtonTextAnim") { last ->
-                    Text(
-                        text = if (last) "Get Started" else "Next",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
+                Text(
+                    text = if (isLastPage) "Get Started" else "Next",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
