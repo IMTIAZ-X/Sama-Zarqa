@@ -138,6 +138,7 @@ dependencies {
     
     // Navigation (Essential for Multi-screen apps)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.datastore.preferences)
     
     implementation(libs.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
