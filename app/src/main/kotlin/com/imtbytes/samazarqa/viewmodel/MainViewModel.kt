@@ -1,77 +1,102 @@
 package com.imtbytes.samazarqa.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.imtbytes.samazarqa.data.AppPreferences
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import android.app.Application
-import com.imtbytes.samazarqa.data.AppPreferences
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
+/**
+ * Enhanced UI State with Onboarding support
+ */
 sealed interface UiState {
     data object Loading : UiState
+    data object Onboarding : UiState
     data class Home(val isSecure: Boolean) : UiState
 }
 
+/**
+ * Main ViewModel managing app-wide state and security
+ * Now with onboarding persistence support
+ */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val prefs = AppPreferences(application)
+    private val appPreferences = AppPreferences(application)
+    
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
     
     private var isSecurityCheckPassed: Boolean = false
 
     init {
-        runSecurityProcess()
-        checkAppStatus()
-        }
-        
-        private fun checkAppStatus() {
-        viewModelScope.launch(Dispatchers.Default) {
-            // ১. আগে সিকিউরিটি চেক শেষ করুন
-          //  isSecurityCheckPassed = performHeavySecurityAlgos()
+        initializeApp()
+    }
+
+    /**
+     * Initialize app by checking onboarding status and running security
+     */
+    private fun initializeApp() {
+        viewModelScope.launch {
+            // Run security check in background
+            runSecurityProcess()
             
-            // ২. তারপর অনবোর্ডিং স্ট্যাটাস চেক করুন
-            val isCompleted = prefs.isOnboardingCompleted.first()
-            if (isCompleted) {
-                _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+            // Check if user has completed onboarding
+            val onboardingCompleted = appPreferences.isOnboardingCompleted.first()
+            
+            if (onboardingCompleted) {
+                // Skip directly to home after splash
+                _uiState.value = UiState.Loading
+            } else {
+                // Show onboarding after splash
+                _uiState.value = UiState.Loading
             }
         }
     }
-    
-        fun completeOnboarding() {
+
+    /**
+     * Called from SplashScreen after animation completes
+     */
+    suspend fun onSplashFinished() {
+        val onboardingCompleted = appPreferences.isOnboardingCompleted.first()
+        
+        if (onboardingCompleted) {
+            // Go directly to home
+            _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+        } else {
+            // Show onboarding
+            _uiState.value = UiState.Onboarding
+        }
+    }
+
+    /**
+     * Called when user completes or skips onboarding
+     */
+    fun completeOnboarding() {
         viewModelScope.launch {
-            prefs.saveOnboardingStatus(true)
+            appPreferences.setOnboardingCompleted()
             _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
         }
     }
-  
-/*
-    private fun runSecurityProcess() {
-        viewModelScope.launch(
-            Dispatchers.Default.limitedParallelism(1)
-        ) {
-            val secure = performHeavySecurityAlgos()
-           // delay(1500)
-           // _uiState.value = UiState.Home(isSecure = secure)
-           isSecurityCheckPassed = secure 
-        }
+
+    /**
+     * Navigate to home (legacy support)
+     */
+    fun navigateToHome() {
+        _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
     }
-    */
-     private fun runSecurityProcess() {
+
+    /**
+     * Background security verification process
+     */
+    private fun runSecurityProcess() {
         viewModelScope.launch(Dispatchers.Default.limitedParallelism(1)) {
             isSecurityCheckPassed = performHeavySecurityAlgos()
         }
     }
-    
-    
-    fun navigateToHome() {
-         _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
-      }
 
     private fun performHeavySecurityAlgos(): Boolean {
         return try {
@@ -83,11 +108,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Obfuscation & anti-analysis routines.
-     * Designed to be ANR-safe and optimizer-resistant.
+     * Obfuscation & anti-analysis routines
+     * Designed to be ANR-safe and optimizer-resistant
      */
     private fun runJadxBreakers() {
-
         // Fake impossible branch (safe, non-blocking)
         if (System.currentTimeMillis() < 0) {
             repeat(3) { /* unreachable noise */ }
@@ -115,6 +139,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         when ((System.nanoTime() % 7).toInt()) {
             1, 3 -> { /* no-op security noise */ }
             else -> Unit
+        }
+    }
+
+    /**
+     * Debug function to reset onboarding (remove in production)
+     */
+    fun resetOnboardingForTesting() {
+        viewModelScope.launch {
+            appPreferences.resetOnboarding()
         }
     }
 }
