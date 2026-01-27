@@ -17,6 +17,8 @@ class MainViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
+    
+    private var isSecurityCheckPassed: Boolean = false
 
     init {
         runSecurityProcess()
@@ -27,10 +29,15 @@ class MainViewModel : ViewModel() {
             Dispatchers.Default.limitedParallelism(1)
         ) {
             val secure = performHeavySecurityAlgos()
-            delay(1500)
-            _uiState.value = UiState.Home(isSecure = secure)
+           // delay(1500)
+           // _uiState.value = UiState.Home(isSecure = secure)
+           isSecurityCheckPassed = secure 
         }
     }
+    
+    fun navigateToHome() {
+         _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+      }
 
     private fun performHeavySecurityAlgos(): Boolean {
         return try {
