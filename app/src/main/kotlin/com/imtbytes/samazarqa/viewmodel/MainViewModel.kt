@@ -1,6 +1,7 @@
 package com.imtbytes.samazarqa.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -27,7 +28,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         runSecurityProcess()
         
-        viewModelScope.launch {
+        private fun checkAppStatus() {
+        viewModelScope.launch(Dispatchers.Default) {
+            // ১. আগে সিকিউরিটি চেক শেষ করুন
+            isSecurityCheckPassed = performHeavySecurityAlgos()
+            
+            // ২. তারপর অনবোর্ডিং স্ট্যাটাস চেক করুন
             val isCompleted = prefs.isOnboardingCompleted.first()
             if (isCompleted) {
                 _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
