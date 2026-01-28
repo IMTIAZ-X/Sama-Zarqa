@@ -38,10 +38,12 @@ class MainActivity : ComponentActivity() {
                                 slideInHorizontally(tween(700)) { it } + fadeIn(tween(700)) togetherWith
                                         slideOutHorizontally(tween(700)) { -it } + fadeOut(tween(700))
                             }
-                            else -> {*/
+                            else -> {
                                 fadeIn(tween(500)) togetherWith fadeOut(tween(500))
                            // }
-                    //    }
+                        }*/
+                        fadeIn(animationSpec = tween(700)) togetherWith 
+                        fadeOut(animationSpec = tween(700))
                     },
                     label = "AppNavigation"
                 ) { state ->
