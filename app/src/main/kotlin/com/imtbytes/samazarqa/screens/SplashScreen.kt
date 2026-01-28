@@ -81,7 +81,76 @@ fun SplashScreen(
             showOnboarding = true
         }
     }
-
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryBlue)
+    ) {
+        AnimatedContent(
+            targetState = showOnboarding,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(600)) togetherWith
+                        fadeOut(animationSpec = tween(400))
+            },
+            label = "SplashToOnboarding"
+        ) { showOnboard ->
+            if (showOnboard) {
+                OnboardingContent(onFinished = { onSplashFinished() })
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "SAMAZARQA",
+                        color = Color.White.copy(alpha = alphaAnim.value),
+                        fontSize = (36 * scaleAnim.value).sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.sp,
+                        modifier = Modifier.graphicsLayer(
+                            scaleX = scaleAnim.value,
+                            scaleY = scaleAnim.value
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // এনিমেশন আপডেট (Rule 2: Smooth Performance)
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = alphaAnim.value > 0.7f,
+                        enter = fadeIn(tween(600)) + scaleIn(initialScale = 0.85f, animationSpec = tween(600))
+                        /* আপনার অনুরোধ অনুযায়ী আগের স্লাইডিং এনিমেশন কমেন্ট করা হলো:
+                           enter = fadeIn(tween(500)) + slideInVertically { -20 } 
+                        */
+                    ) {
+                        Text(
+                            text = "Security Suite",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(40.dp))
+                    
+                    // Progress Indicator (Lag-free)
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showProgress,
+                        enter = fadeIn(tween(400)) + scaleIn(tween(400))
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+/*
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -165,7 +234,7 @@ fun SplashScreen(
                 fontWeight = FontWeight.Light
             )
         }
-    }
+    }*/
 }
 
 /**
