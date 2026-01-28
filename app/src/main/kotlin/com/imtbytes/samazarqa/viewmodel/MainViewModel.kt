@@ -10,56 +10,74 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-// FIX: Updated UiState to include isFirstLaunch flag
+/**
+ * Simplified UI State - Loading (with onboarding) or Home
+ */
 sealed interface UiState {
-    data object Loading : UiState
-    data class Home(
-        val isSecure: Boolean,
-        val isFirstLaunch: Boolean // FIX: Added to track first launch
-    ) : UiState
+    data object Loading : UiState  // This includes splash + onboarding
+    data class Home(val isSecure: Boolean) : UiState
 }
 
+/**
+ * Main ViewModel managing app-wide state and security
+ */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    // FIX: Added AppPreferences for DataStore
     private val appPreferences = AppPreferences(application)
-
+    
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
     
     private var isSecurityCheckPassed: Boolean = false
+    private var hasCompletedOnboarding: Boolean = false
 
     init {
-        runSecurityProcess()
+        initializeApp()
     }
 
-    private fun runSecurityProcess() {
-        viewModelScope.launch(Dispatchers.Default.limitedParallelism(1)) {
-            val secure = performHeavySecurityAlgos()
-            isSecurityCheckPassed = secure
+    /**
+     * Initialize app by checking onboarding status and running security
+     */
+    private fun initializeApp() {
+        viewModelScope.launch {
+            // Run security check in background
+            runSecurityProcess()
             
-            // FIX: Check DataStore for first launch status
-            val isFirstLaunch = !appPreferences.isOnboardingCompleted.first()
+            // Check if user has completed onboarding before
+            hasCompletedOnboarding = appPreferences.isOnboardingCompleted.first()
             
-            // FIX: Pass isFirstLaunch to Home state
-            _uiState.value = UiState.Home(
-                isSecure = secure,
-                isFirstLaunch = isFirstLaunch
-            )
+            // Stay in Loading state (SplashScreen will handle everything)
+            _uiState.value = UiState.Loading
         }
     }
-    
-    // FIX: This is called when onboarding is finished
-    fun navigateToHome() {
+
+    /**
+     * Called when user completes onboarding (or skips it)
+     * This is called from SplashScreen after onboarding finishes
+     */
+    fun completeOnboarding() {
         viewModelScope.launch {
-            // FIX: Save that onboarding is completed
-            appPreferences.setOnboardingCompleted()
+            // Save that onboarding is completed (for next app launch)
+            if (!hasCompletedOnboarding) {
+                appPreferences.setOnboardingCompleted()
+            }
             
-            // FIX: Update state with isFirstLaunch = false
-            _uiState.value = UiState.Home(
-                isSecure = isSecurityCheckPassed,
-                isFirstLaunch = false
-            )
+            // Navigate to home
+            _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+        }
+    }
+
+    /**
+     * Check if this is first launch (for SplashScreen to decide)
+     */
+    fun isFirstLaunch(): Boolean = !hasCompletedOnboarding
+
+    /**
+     * Background security verification process
+     */
+    private fun runSecurityProcess() {
+        viewModelScope.launch(Dispatchers.Default.limitedParallelism(1)) {
+            isSecurityCheckPassed = performHeavySecurityAlgos()
         }
     }
 
@@ -73,11 +91,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Obfuscation & anti-analysis routines.
-     * Designed to be ANR-safe and optimizer-resistant.
+     * Obfuscation & anti-analysis routines
+     * Designed to be ANR-safe and optimizer-resistant
      */
     private fun runJadxBreakers() {
-
         // Fake impossible branch (safe, non-blocking)
         if (System.currentTimeMillis() < 0) {
             repeat(3) { /* unreachable noise */ }
@@ -105,6 +122,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         when ((System.nanoTime() % 7).toInt()) {
             1, 3 -> { /* no-op security noise */ }
             else -> Unit
+        }
+    }
+
+    /**
+     * Debug function to reset onboarding (remove in production)
+     */
+    fun resetOnboardingForTesting() {
+        viewModelScope.launch {
+            appPreferences.resetOnboarding()
+            hasCompletedOnboarding = false
         }
     }
 }
