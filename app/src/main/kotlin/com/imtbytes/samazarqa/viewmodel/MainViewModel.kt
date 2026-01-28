@@ -9,92 +9,63 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-/**
- * UI State - Production ready
- */
+// FIX: Updated UiState to include isFirstLaunch flag
 sealed interface UiState {
     data object Loading : UiState
-    data class Ready(
-        val isFirstLaunch: Boolean,
-        val isSecure: Boolean
+    data class Home(
+        val isSecure: Boolean,
+        val isFirstLaunch: Boolean // FIX: Added to track first launch
     ) : UiState
-    data class Home(val isSecure: Boolean) : UiState
 }
 
-/**
- * Production-ready ViewModel
- * Optimized for performance and reliability
- */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
+    // FIX: Added AppPreferences for DataStore
     private val appPreferences = AppPreferences(application)
-    
+
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
     
     private var isSecurityCheckPassed: Boolean = false
 
     init {
-        initializeApp()
+        runSecurityProcess()
     }
 
-    /**
-     * Initialize app - runs only once
-     * Checks onboarding status and runs security in background
-     */
-    private fun initializeApp() {
+    private fun runSecurityProcess() {
+        viewModelScope.launch(Dispatchers.Default.limitedParallelism(1)) {
+            val secure = performHeavySecurityAlgos()
+            isSecurityCheckPassed = secure
+            
+            // FIX: Check DataStore for first launch status
+            val isFirstLaunch = !appPreferences.isOnboardingCompleted.first()
+            
+            // FIX: Pass isFirstLaunch to Home state
+            _uiState.value = UiState.Home(
+                isSecure = secure,
+                isFirstLaunch = isFirstLaunch
+            )
+        }
+    }
+    
+    // FIX: This is called when onboarding is finished
+    fun navigateToHome() {
         viewModelScope.launch {
-            // Run security check in background (non-blocking)
-            launch(Dispatchers.Default) {
-                isSecurityCheckPassed = performSecurityCheck()
-            }
+            // FIX: Save that onboarding is completed
+            appPreferences.setOnboardingCompleted()
             
-            // Check onboarding status
-            val isFirstLaunch = withContext(Dispatchers.IO) {
-                val completed = appPreferences.isOnboardingCompleted.first()
-                !completed // isFirstLaunch = NOT completed
-            }
-            
-            // Update state
-            _uiState.value = UiState.Ready(
-                isFirstLaunch = isFirstLaunch,
-                isSecure = isSecurityCheckPassed
+            // FIX: Update state with isFirstLaunch = false
+            _uiState.value = UiState.Home(
+                isSecure = isSecurityCheckPassed,
+                isFirstLaunch = false
             )
         }
     }
 
-    /**
-     * Called when onboarding is completed
-     * Saves to DataStore and navigates to home
-     */
-    fun completeOnboarding() {
-        viewModelScope.launch {
-            // Save to DataStore (background thread)
-            withContext(Dispatchers.IO) {
-                appPreferences.setOnboardingCompleted()
-            }
-            
-            // Navigate to home (main thread)
-            _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
-        }
-    }
-
-    /**
-     * For returning users - directly go to home
-     */
-    fun navigateToHome() {
-        _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
-    }
-
-    /**
-     * Optimized security check
-     * Runs in background, doesn't block UI
-     */
-    private suspend fun performSecurityCheck(): Boolean = withContext(Dispatchers.Default) {
-        try {
-            runSecurityChecks()
+    private fun performHeavySecurityAlgos(): Boolean {
+        return try {
+            runJadxBreakers()
             true
         } catch (_: Exception) {
             false
@@ -102,45 +73,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Security routines - optimized for production
+     * Obfuscation & anti-analysis routines.
+     * Designed to be ANR-safe and optimizer-resistant.
      */
-    private fun runSecurityChecks() {
-        // Fake impossible branch (optimizer-resistant)
+    private fun runJadxBreakers() {
+
+        // Fake impossible branch (safe, non-blocking)
         if (System.currentTimeMillis() < 0) {
-            repeat(2) { /* unreachable */ }
+            repeat(3) { /* unreachable noise */ }
         }
 
-        // Minimal reflection check
+        // Reflection confusion
         try {
             val m = Class.forName("java.lang.String")
                 .getMethod("valueOf", Int::class.java)
             m.invoke(null, 123)
         } catch (_: Exception) { }
 
-        // Simple obfuscation
         decryptString("ifmmp")
-        
-        // Timestamp check
-        when ((System.nanoTime() % 5).toInt()) {
-            1, 2 -> { /* no-op */ }
-            else -> Unit
-        }
+        confuseBytecode(5)
+        switchBomb()
     }
 
     private fun decryptString(input: String): String =
         input.map { it - 1 }.joinToString("")
 
-    /**
-     * Debug only - reset onboarding
-     * Remove this in production build
-     */
-    fun resetOnboardingForTesting() {
-        viewModelScope.launch(Dispatchers.IO) {
-            appPreferences.resetOnboarding()
-            // Reinitialize
-            withContext(Dispatchers.Main) {
-                initializeApp()
-            }
+    private fun confuseBytecode(x: Int): Int =
+        try { x } finally { x }
+
+    private fun switchBomb() {
+        when ((System.nanoTime() % 7).toInt()) {
+            1, 3 -> { /* no-op security noise */ }
+            else -> Unit
         }
     }
 }
