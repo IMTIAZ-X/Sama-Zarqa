@@ -47,19 +47,38 @@ class MainActivity : ComponentActivity() {
                 ) { state ->
                     when (state) {
                         is UiState.Loading -> {
-                            SplashScreen(
-                                onSplashFinished = {
-                                    viewModel.completeOnboarding()
-                                }
-                            )
+                            // Loading state - shows briefly
                         }
                         
                         is UiState.Home -> {
-                            HomeScreen(
-                                isDarkTheme = isDarkTheme,
-                                onThemeToggle = { isDarkTheme = !isDarkTheme },
-                                isSecure = state.isSecure
-                            )
+                            // FIX: Check if first launch to decide splash behavior
+                            if (state.isFirstLaunch) {
+                                // First time user - show splash with onboarding
+                                SplashScreen(
+                                    isFirstLaunch = true,
+                                    onSplashFinished = {
+                                        viewModel.completeOnboarding()
+                                    }
+                                )
+                            } else {
+                                // FIX: Returning user - show splash then go to home
+                                var showingSplash by remember { mutableStateOf(true) }
+                                
+                                if (showingSplash) {
+                                    SplashScreen(
+                                        isFirstLaunch = false,
+                                        onSplashFinished = {
+                                            showingSplash = false
+                                        }
+                                    )
+                                } else {
+                                    HomeScreen(
+                                        isDarkTheme = isDarkTheme,
+                                        onThemeToggle = { isDarkTheme = !isDarkTheme },
+                                        isSecure = state.isSecure
+                                    )
+                                }
+                            }
                         }
                     }
                 }
