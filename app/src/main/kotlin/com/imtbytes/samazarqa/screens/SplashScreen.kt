@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
  * Shows splash animation first, then transitions to onboarding
  * FIX: Added isFirstLaunch to handle returning users
  */
-@Composable
+/*@Composable
 fun SplashScreen(
     isFirstLaunch: Boolean,  // FIX: এই parameter যোগ করা হয়েছে
     onSplashFinished: suspend () -> Unit
@@ -81,76 +81,7 @@ fun SplashScreen(
             showOnboarding = true
         }
     }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PrimaryBlue)
-    ) {
-        AnimatedContent(
-            targetState = showOnboarding,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(600)) togetherWith
-                        fadeOut(animationSpec = tween(400))
-            },
-            label = "SplashToOnboarding"
-        ) { showOnboard ->
-            if (showOnboard) {
-                OnboardingContent(onFinished = { onSplashFinished() })
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "SAMAZARQA",
-                        color = Color.White.copy(alpha = alphaAnim.value),
-                        fontSize = (36 * scaleAnim.value).sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 6.sp,
-                        modifier = Modifier.graphicsLayer(
-                            scaleX = scaleAnim.value,
-                            scaleY = scaleAnim.value
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // এনিমেশন আপডেট (Rule 2: Smooth Performance)
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = alphaAnim.value > 0.7f,
-                        enter = fadeIn(tween(600)) + scaleIn(initialScale = 0.85f, animationSpec = tween(600))
-                        /* আপনার অনুরোধ অনুযায়ী আগের স্লাইডিং এনিমেশন কমেন্ট করা হলো:
-                           enter = fadeIn(tween(500)) + slideInVertically { -20 } 
-                        */
-                    ) {
-                        Text(
-                            text = "Security Suite",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 2.sp
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(40.dp))
-                    
-                    // Progress Indicator (Lag-free)
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = showProgress,
-                        enter = fadeIn(tween(400)) + scaleIn(tween(400))
-                    ) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 3.dp,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-/*
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -234,9 +165,177 @@ fun SplashScreen(
                 fontWeight = FontWeight.Light
             )
         }
-    }*/
+    }
 }
 
+@Composable
+fun SplashScreen(
+    isFirstLaunch: Boolean,
+    onSplashFinished: suspend () -> Unit
+) {
+    // State to control splash vs onboarding
+    var showOnboarding by remember { mutableStateOf(false) }
+
+    // Splash animations
+    val alphaAnim = remember { Animatable(0f) }
+    // val scaleAnim = remember { Animatable(0.3f) } // OLD ANIMATION: Commented out for future reference
+
+    // NEW ANIMATION STATES: Fade In and Slide Up
+    val textAlpha = remember { Animatable(0f) }
+    val textOffset = remember { Animatable(50f) } // Start from 50dp below
+
+    var showProgress by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        // OLD ANIMATION LAUNCH: Commented out
+        /*
+        launch {
+            scaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        */
+
+        // NEW ANIMATION LAUNCH: Start Fade In and Slide Up
+        launch {
+            textAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+            )
+        }
+        launch {
+            textOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+
+        launch {
+            alphaAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(900, easing = FastOutSlowInEasing)
+            )
+        }
+
+        // Show progress indicator
+        delay(600)
+        showProgress = true
+        
+        // Wait for splash duration
+        delay(1400)
+        
+        // FIX: If returning user, skip onboarding and go directly to home
+        if (!isFirstLaunch) {
+            delay(300)  // Short delay for smooth transition
+            onSplashFinished()
+        } else {
+            // First time user - show onboarding
+            showOnboarding = true
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryBlue)
+    ) {
+        AnimatedContent(
+            targetState = showOnboarding,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(600)) togetherWith
+                        fadeOut(animationSpec = tween(400))
+            },
+            label = "SplashToOnboarding"
+        ) { showOnboard ->
+            if (showOnboard) {
+                // Show onboarding
+                OnboardingContent(onFinished = {
+                    onSplashFinished()
+                })
+            } else {
+                // Show splash
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Main Title with NEW Animation (Fade + Slide Up)
+                    Text(
+                        text = "SAMAZARQA",
+                        color = Color.White, // Alpha handled by modifier now
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.sp,
+                        modifier = Modifier
+                            // OLD ANIMATION MODIFIER: Commented out
+                            /*
+                            .graphicsLayer(
+                                scaleX = scaleAnim.value,
+                                scaleY = scaleAnim.value
+                            )
+                            */
+                            // NEW ANIMATION MODIFIERS:
+                            .alpha(textAlpha.value)
+                            .offset(y = textOffset.value.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = alphaAnim.value > 0.7f,
+                        enter = fadeIn(tween(500)) + slideInVertically { -20 }
+                    ) {
+                        Text(
+                            text = "Security Suite",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(40.dp))
+                    
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showProgress,
+                        enter = fadeIn(tween(400)) + scaleIn(tween(400))
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Version info
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !showOnboarding && alphaAnim.value > 0.8f,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 48.dp),
+            enter = fadeIn(tween(600))
+        ) {
+            Text(
+                text = "v1.0.0",
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Light
+            )
+        }
+    }
+}
+
+*/
 /**
  * Onboarding Content - 3 pages with navigation
  */
