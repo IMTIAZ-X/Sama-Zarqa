@@ -15,10 +15,6 @@ import com.imtbytes.samazarqa.ui.theme.SamazarqaTheme
 import com.imtbytes.samazarqa.viewmodel.MainViewModel
 import com.imtbytes.samazarqa.viewmodel.UiState
 
-/**
- * Production-ready MainActivity
- * Optimized for performance and reliability
- */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,35 +26,51 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
             SamazarqaTheme(darkTheme = isDarkTheme) {
-                when (val state = uiState) {
-                    is UiState.Loading -> {
-                        // Show nothing or simple loading
-                        // State will change quickly to Ready
-                    }
-                    
-                    is UiState.Ready -> {
-                        // Splash screen handles both first launch and returning users
-                        SplashScreen(
-                            isFirstLaunch = state.isFirstLaunch,
-                            onFinished = {
-                                if (state.isFirstLaunch) {
-                                    // First time - save and go to home
-                                    viewModel.completeOnboarding()
+                AnimatedContent(
+                    targetState = uiState,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(700)) togetherWith fadeOut(animationSpec = tween(700))
+                    },
+                    label = "ScreenSwitch"
+                ) { state ->
+                    when (state) {
+                        is UiState.Loading -> {
+                            // Show nothing or a simple loading indicator
+                            // This state is very brief
+                        }
+                       
+                        is UiState.Home -> {
+                            // FIX: Check if this is first launch
+                            if (state.isFirstLaunch) {
+                                // First launch - show splash + onboarding
+                                SplashScreen(
+                                    isFirstLaunch = true,
+                                    onOnboardingFinished = { 
+                                        // When onboarding finishes, save to DataStore and update state
+                                        viewModel.navigateToHome()
+                                    }
+                                )
+                            } else {
+                                // Returning user - show home directly or with splash only
+                                // FIX: Added a flag to decide
+                                var showingSplash by remember { mutableStateOf(true) }
+                                
+                                if (showingSplash) {
+                                    SplashScreen(
+                                        isFirstLaunch = false,
+                                        onOnboardingFinished = { 
+                                            showingSplash = false
+                                        }
+                                    )
                                 } else {
-                                    // Returning user - just go to home
-                                    viewModel.navigateToHome()
+                                    HomeScreen(
+                                        isDarkTheme = isDarkTheme,
+                                        onThemeToggle = { isDarkTheme = !isDarkTheme },
+                                        isSecure = state.isSecure
+                                    )
                                 }
                             }
-                        )
-                    }
-                    
-                    is UiState.Home -> {
-                        // Smooth transition to home
-                        HomeScreen(
-                            isDarkTheme = isDarkTheme,
-                            onThemeToggle = { isDarkTheme = !isDarkTheme },
-                            isSecure = state.isSecure
-                        )
+                        }
                     }
                 }
             }
