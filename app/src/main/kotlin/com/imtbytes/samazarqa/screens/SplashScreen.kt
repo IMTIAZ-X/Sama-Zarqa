@@ -31,9 +31,11 @@ import kotlinx.coroutines.launch
 /**
  * Combined Splash + Onboarding Screen
  * Shows splash animation first, then transitions to onboarding
+ * FIX: Added isFirstLaunch to handle returning users
  */
 @Composable
 fun SplashScreen(
+    isFirstLaunch: Boolean,  // FIX: এই parameter যোগ করা হয়েছে
     onSplashFinished: suspend () -> Unit
 ) {
     // State to control splash vs onboarding
@@ -70,8 +72,14 @@ fun SplashScreen(
         // Wait for splash duration
         delay(1400)
         
-        // Transition to onboarding
-        showOnboarding = true
+        // FIX: If returning user, skip onboarding and go directly to home
+        if (!isFirstLaunch) {
+            delay(300)  // Short delay for smooth transition
+            onSplashFinished()
+        } else {
+            // First time user - show onboarding
+            showOnboarding = true
+        }
     }
 
     Box(
@@ -174,6 +182,9 @@ private fun OnboardingContent(
     val isLastPage by remember {
         derivedStateOf { pagerState.currentPage == onboardingPages.size - 1 }
     }
+    
+    // FIX: Button click protection to prevent lag and double-clicks
+    var isNavigating by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -195,10 +206,15 @@ private fun OnboardingContent(
             ) {
                 TextButton(
                     onClick = {
-                        scope.launch {
-                            onFinished()
+                        // FIX: Prevent multiple clicks
+                        if (!isNavigating) {
+                            isNavigating = true
+                            scope.launch {
+                                onFinished()
+                            }
                         }
                     },
+                    enabled = !isNavigating,  // FIX: Disable while navigating
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = Color.White
                     )
@@ -215,7 +231,8 @@ private fun OnboardingContent(
         // Pager Content
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            userScrollEnabled = !isNavigating  // FIX: Disable scroll while navigating
         ) { pageIndex ->
             OnboardingPage(
                 data = onboardingPages[pageIndex],
@@ -258,22 +275,27 @@ private fun OnboardingContent(
             ) { lastPage ->
                 Button(
                     onClick = {
-                        if (lastPage) {
-                            scope.launch {
-                                onFinished()
-                            }
-                        } else {
-                            scope.launch {
-                                pagerState.animateScrollToPage(
-                                    page = pagerState.currentPage + 1,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessLow
+                        // FIX: Prevent multiple clicks and handle navigation properly
+                        if (!isNavigating) {
+                            if (lastPage) {
+                                isNavigating = true
+                                scope.launch {
+                                    onFinished()
+                                }
+                            } else {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = pagerState.currentPage + 1,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     },
+                    enabled = !isNavigating,  // FIX: Disable while navigating
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor = PrimaryBlue
