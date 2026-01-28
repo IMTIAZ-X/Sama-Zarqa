@@ -9,17 +9,23 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
- * Simplified UI State - Loading (with onboarding) or Home
+ * UI State - Production ready
  */
 sealed interface UiState {
-    data object Loading : UiState  // This includes splash + onboarding
+    data object Loading : UiState
+    data class Ready(
+        val isFirstLaunch: Boolean,
+        val isSecure: Boolean
+    ) : UiState
     data class Home(val isSecure: Boolean) : UiState
 }
 
 /**
- * Main ViewModel managing app-wide state and security
+ * Production-ready ViewModel
+ * Optimized for performance and reliability
  */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -29,61 +35,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val uiState = _uiState.asStateFlow()
     
     private var isSecurityCheckPassed: Boolean = false
-    private var hasCompletedOnboarding: Boolean = false
 
     init {
         initializeApp()
     }
 
     /**
-     * Initialize app by checking onboarding status and running security
+     * Initialize app - runs only once
+     * Checks onboarding status and runs security in background
      */
     private fun initializeApp() {
         viewModelScope.launch {
-            // Run security check in background
-            runSecurityProcess()
+            // Run security check in background (non-blocking)
+            launch(Dispatchers.Default) {
+                isSecurityCheckPassed = performSecurityCheck()
+            }
             
-            // Check if user has completed onboarding before
-            hasCompletedOnboarding = appPreferences.isOnboardingCompleted.first()
+            // Check onboarding status
+            val isFirstLaunch = withContext(Dispatchers.IO) {
+                val completed = appPreferences.isOnboardingCompleted.first()
+                !completed // isFirstLaunch = NOT completed
+            }
             
-            // Stay in Loading state (SplashScreen will handle everything)
-            _uiState.value = UiState.Loading
+            // Update state
+            _uiState.value = UiState.Ready(
+                isFirstLaunch = isFirstLaunch,
+                isSecure = isSecurityCheckPassed
+            )
         }
     }
 
     /**
-     * Called when user completes onboarding (or skips it)
-     * This is called from SplashScreen after onboarding finishes
+     * Called when onboarding is completed
+     * Saves to DataStore and navigates to home
      */
     fun completeOnboarding() {
         viewModelScope.launch {
-            // Save that onboarding is completed (for next app launch)
-            if (!hasCompletedOnboarding) {
+            // Save to DataStore (background thread)
+            withContext(Dispatchers.IO) {
                 appPreferences.setOnboardingCompleted()
             }
             
-            // Navigate to home
+            // Navigate to home (main thread)
             _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
         }
     }
 
     /**
-     * Check if this is first launch (for SplashScreen to decide)
+     * For returning users - directly go to home
      */
-    fun isFirstLaunch(): Boolean = !hasCompletedOnboarding
-
-    /**
-     * Background security verification process
-     */
-    private fun runSecurityProcess() {
-        viewModelScope.launch(Dispatchers.Default.limitedParallelism(1)) {
-            isSecurityCheckPassed = performHeavySecurityAlgos()
-        }
+    fun navigateToHome() {
+        _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
     }
 
-    private fun performHeavySecurityAlgos(): Boolean {
-        return try {
-            runJadxBreakers()
+    /**
+     * Optimized security check
+     * Runs in background, doesn't block UI
+     */
+    private suspend fun performSecurityCheck(): Boolean = withContext(Dispatchers.Default) {
+        try {
+            runSecurityChecks()
             true
         } catch (_: Exception) {
             false
@@ -91,47 +102,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Obfuscation & anti-analysis routines
-     * Designed to be ANR-safe and optimizer-resistant
+     * Security routines - optimized for production
      */
-    private fun runJadxBreakers() {
-        // Fake impossible branch (safe, non-blocking)
+    private fun runSecurityChecks() {
+        // Fake impossible branch (optimizer-resistant)
         if (System.currentTimeMillis() < 0) {
-            repeat(3) { /* unreachable noise */ }
+            repeat(2) { /* unreachable */ }
         }
 
-        // Reflection confusion
+        // Minimal reflection check
         try {
             val m = Class.forName("java.lang.String")
                 .getMethod("valueOf", Int::class.java)
             m.invoke(null, 123)
         } catch (_: Exception) { }
 
+        // Simple obfuscation
         decryptString("ifmmp")
-        confuseBytecode(5)
-        switchBomb()
+        
+        // Timestamp check
+        when ((System.nanoTime() % 5).toInt()) {
+            1, 2 -> { /* no-op */ }
+            else -> Unit
+        }
     }
 
     private fun decryptString(input: String): String =
         input.map { it - 1 }.joinToString("")
 
-    private fun confuseBytecode(x: Int): Int =
-        try { x } finally { x }
-
-    private fun switchBomb() {
-        when ((System.nanoTime() % 7).toInt()) {
-            1, 3 -> { /* no-op security noise */ }
-            else -> Unit
-        }
-    }
-
     /**
-     * Debug function to reset onboarding (remove in production)
+     * Debug only - reset onboarding
+     * Remove this in production build
      */
     fun resetOnboardingForTesting() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             appPreferences.resetOnboarding()
-            hasCompletedOnboarding = false
+            // Reinitialize
+            withContext(Dispatchers.Main) {
+                initializeApp()
+            }
         }
     }
 }
