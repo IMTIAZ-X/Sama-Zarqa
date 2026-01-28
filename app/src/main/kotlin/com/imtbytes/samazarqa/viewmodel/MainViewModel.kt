@@ -11,11 +11,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Simplified UI State - Loading (with onboarding) or Home
+ * UI State - শুধু isFirstLaunch flag যোগ করা হয়েছে
  */
 sealed interface UiState {
-    data object Loading : UiState  // This includes splash + onboarding
-    data class Home(val isSecure: Boolean) : UiState
+    data object Loading : UiState
+    data class Home(
+        val isSecure: Boolean,
+        val isFirstLaunch: Boolean  // FIX: এটা যোগ করা হয়েছে
+    ) : UiState
 }
 
 /**
@@ -43,11 +46,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Run security check in background
             runSecurityProcess()
             
-            // Check if user has completed onboarding before
+            // FIX: Check if user has completed onboarding before
             hasCompletedOnboarding = appPreferences.isOnboardingCompleted.first()
             
-            // Stay in Loading state (SplashScreen will handle everything)
-            _uiState.value = UiState.Loading
+            // FIX: এখন isFirstLaunch pass করা হচ্ছে
+            _uiState.value = UiState.Home(
+                isSecure = isSecurityCheckPassed,
+                isFirstLaunch = !hasCompletedOnboarding  // FIX: এটা যোগ করা
+            )
         }
     }
 
@@ -57,13 +63,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun completeOnboarding() {
         viewModelScope.launch {
-            // Save that onboarding is completed (for next app launch)
+            // FIX: Save that onboarding is completed (for next app launch)
             if (!hasCompletedOnboarding) {
                 appPreferences.setOnboardingCompleted()
+                hasCompletedOnboarding = true  // FIX: Update local state
             }
             
-            // Navigate to home
-            _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
+            // FIX: Navigate to home with isFirstLaunch = false
+            _uiState.value = UiState.Home(
+                isSecure = isSecurityCheckPassed,
+                isFirstLaunch = false  // FIX: এখন false
+            )
         }
     }
 
