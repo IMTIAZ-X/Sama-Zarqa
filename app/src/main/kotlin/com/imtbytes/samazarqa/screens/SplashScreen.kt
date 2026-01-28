@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -30,144 +31,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Combined Splash + Onboarding Screen
- * Shows splash animation first, then transitions to onboarding
- * FIX: Added isFirstLaunch to handle returning users
  */
-/*@Composable
-fun SplashScreen(
-    isFirstLaunch: Boolean,  // FIX: এই parameter যোগ করা হয়েছে
-    onSplashFinished: suspend () -> Unit
-) {
-    // State to control splash vs onboarding
-    var showOnboarding by remember { mutableStateOf(false) }
-
-    // Splash animations
-    val alphaAnim = remember { Animatable(0f) }
-    val scaleAnim = remember { Animatable(0.3f) }
-    var showProgress by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        // Animate logo appearance
-        launch {
-            scaleAnim.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-        
-        launch {
-            alphaAnim.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(900, easing = FastOutSlowInEasing)
-            )
-        }
-
-        // Show progress indicator
-        delay(600)
-        showProgress = true
-        
-        // Wait for splash duration
-        delay(1400)
-        
-        // FIX: If returning user, skip onboarding and go directly to home
-        if (!isFirstLaunch) {
-            delay(300)  // Short delay for smooth transition
-            onSplashFinished()
-        } else {
-            // First time user - show onboarding
-            showOnboarding = true
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PrimaryBlue)
-    ) {
-        AnimatedContent(
-            targetState = showOnboarding,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(600)) togetherWith
-                        fadeOut(animationSpec = tween(400))
-            },
-            label = "SplashToOnboarding"
-        ) { showOnboard ->
-            if (showOnboard) {
-                // Show onboarding
-                OnboardingContent(onFinished = {
-                    onSplashFinished()
-                })
-            } else {
-                // Show splash
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "SAMAZARQA",
-                        color = Color.White.copy(alpha = alphaAnim.value),
-                        fontSize = (36 * scaleAnim.value).sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 6.sp,
-                        modifier = Modifier.graphicsLayer(
-                            scaleX = scaleAnim.value,
-                            scaleY = scaleAnim.value
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = alphaAnim.value > 0.7f,
-                        enter = fadeIn(tween(500)) + slideInVertically { -20 }
-                    ) {
-                        Text(
-                            text = "Security Suite",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 2.sp
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(40.dp))
-                    
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = showProgress,
-                        enter = fadeIn(tween(400)) + scaleIn(tween(400))
-                    ) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 3.dp,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Version info
-        androidx.compose.animation.AnimatedVisibility(
-            visible = !showOnboarding && alphaAnim.value > 0.8f,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp),
-            enter = fadeIn(tween(600))
-        ) {
-            Text(
-                text = "v1.0.0",
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Light
-            )
-        }
-    }
-}
-
 @Composable
 fun SplashScreen(
     isFirstLaunch: Boolean,
@@ -176,18 +40,21 @@ fun SplashScreen(
     // State to control splash vs onboarding
     var showOnboarding by remember { mutableStateOf(false) }
 
-    // Splash animations
-    val alphaAnim = remember { Animatable(0f) }
-    // val scaleAnim = remember { Animatable(0.3f) } // OLD ANIMATION: Commented out for future reference
+    // --- Animation States ---
+    
+    // 1. OLD ANIMATION (Commented out as requested)
+    /* val scaleAnim = remember { Animatable(0.3f) } 
+    */
 
-    // NEW ANIMATION STATES: Fade In and Slide Up
+    // 2. NEW ANIMATION (Fade In + Slide Up)
     val textAlpha = remember { Animatable(0f) }
-    val textOffset = remember { Animatable(50f) } // Start from 50dp below
+    val textOffset = remember { Animatable(50f) } // Start 50dp below
 
+    val alphaAnim = remember { Animatable(0f) } // For subtitle
     var showProgress by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        // OLD ANIMATION LAUNCH: Commented out
+        // --- OLD ANIMATION LAUNCHER (Commented out) ---
         /*
         launch {
             scaleAnim.animateTo(
@@ -200,14 +67,16 @@ fun SplashScreen(
         }
         */
 
-        // NEW ANIMATION LAUNCH: Start Fade In and Slide Up
+        // --- NEW ANIMATION LAUNCHER ---
         launch {
+            // Fade In Text
             textAlpha.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
             )
         }
         launch {
+            // Slide Up Text
             textOffset.animateTo(
                 targetValue = 0f,
                 animationSpec = spring(
@@ -217,6 +86,7 @@ fun SplashScreen(
             )
         }
 
+        // Subtitle animation
         launch {
             alphaAnim.animateTo(
                 targetValue = 1f,
@@ -231,12 +101,11 @@ fun SplashScreen(
         // Wait for splash duration
         delay(1400)
         
-        // FIX: If returning user, skip onboarding and go directly to home
+        // Handle User Navigation
         if (!isFirstLaunch) {
-            delay(300)  // Short delay for smooth transition
+            delay(300)
             onSplashFinished()
         } else {
-            // First time user - show onboarding
             showOnboarding = true
         }
     }
@@ -260,28 +129,27 @@ fun SplashScreen(
                     onSplashFinished()
                 })
             } else {
-                // Show splash
+                // Show splash content
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Main Title with NEW Animation (Fade + Slide Up)
                     Text(
                         text = "SAMAZARQA",
-                        color = Color.White, // Alpha handled by modifier now
+                        color = Color.White,
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 6.sp,
                         modifier = Modifier
-                            // OLD ANIMATION MODIFIER: Commented out
+                            // --- OLD MODIFIER (Commented out) ---
                             /*
                             .graphicsLayer(
                                 scaleX = scaleAnim.value,
                                 scaleY = scaleAnim.value
                             )
                             */
-                            // NEW ANIMATION MODIFIERS:
+                            // --- NEW MODIFIER (Added) ---
                             .alpha(textAlpha.value)
                             .offset(y = textOffset.value.dp)
                     )
@@ -335,7 +203,6 @@ fun SplashScreen(
     }
 }
 
-*/
 /**
  * Onboarding Content - 3 pages with navigation
  */
@@ -351,7 +218,6 @@ private fun OnboardingContent(
         derivedStateOf { pagerState.currentPage == onboardingPages.size - 1 }
     }
     
-    // FIX: Button click protection to prevent lag and double-clicks
     var isNavigating by remember { mutableStateOf(false) }
 
     Column(
@@ -374,24 +240,15 @@ private fun OnboardingContent(
             ) {
                 TextButton(
                     onClick = {
-                        // FIX: Prevent multiple clicks
                         if (!isNavigating) {
                             isNavigating = true
-                            scope.launch {
-                                onFinished()
-                            }
+                            scope.launch { onFinished() }
                         }
                     },
-                    enabled = !isNavigating,  // FIX: Disable while navigating
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color.White
-                    )
+                    enabled = !isNavigating,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                 ) {
-                    Text(
-                        text = "Skip",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = "Skip", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -400,12 +257,9 @@ private fun OnboardingContent(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f),
-            userScrollEnabled = !isNavigating  // FIX: Disable scroll while navigating
+            userScrollEnabled = !isNavigating
         ) { pageIndex ->
-            OnboardingPage(
-                data = onboardingPages[pageIndex],
-                pageIndex = pageIndex
-            )
+            OnboardingPage(data = onboardingPages[pageIndex], pageIndex = pageIndex)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -424,9 +278,7 @@ private fun OnboardingContent(
                 modifier = Modifier.weight(1f)
             ) {
                 repeat(onboardingPages.size) { index ->
-                    PageIndicator(
-                        isSelected = pagerState.currentPage == index
-                    )
+                    PageIndicator(isSelected = pagerState.currentPage == index)
                 }
             }
 
@@ -443,13 +295,10 @@ private fun OnboardingContent(
             ) { lastPage ->
                 Button(
                     onClick = {
-                        // FIX: Prevent multiple clicks and handle navigation properly
                         if (!isNavigating) {
                             if (lastPage) {
                                 isNavigating = true
-                                scope.launch {
-                                    onFinished()
-                                }
+                                scope.launch { onFinished() }
                             } else {
                                 scope.launch {
                                     pagerState.animateScrollToPage(
@@ -463,20 +312,13 @@ private fun OnboardingContent(
                             }
                         }
                     },
-                    enabled = !isNavigating,  // FIX: Disable while navigating
+                    enabled = !isNavigating,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor = PrimaryBlue
                     ),
                     shape = RoundedCornerShape(16.dp),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 8.dp
-                    ),
-                    contentPadding = PaddingValues(
-                        horizontal = 32.dp,
-                        vertical = 14.dp
-                    )
+                    contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp)
                 ) {
                     Text(
                         text = if (lastPage) "Get Started" else "Next",
@@ -499,10 +341,7 @@ private fun OnboardingContent(
 }
 
 @Composable
-private fun OnboardingPage(
-    data: OnboardingPageData,
-    pageIndex: Int
-) {
+private fun OnboardingPage(data: OnboardingPageData, pageIndex: Int) {
     var isVisible by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
@@ -519,11 +358,8 @@ private fun OnboardingPage(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
         ) {
-            // Icon Container with pulse
             val infiniteTransition = rememberInfiniteTransition(label = "pulse")
             val pulseScale by infiniteTransition.animateFloat(
                 initialValue = 1f,
@@ -538,10 +374,7 @@ private fun OnboardingPage(
             Box(
                 modifier = Modifier
                     .size(200.dp)
-                    .graphicsLayer {
-                        scaleX = pulseScale
-                        scaleY = pulseScale
-                    }
+                    .graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }
                     .clip(RoundedCornerShape(40.dp))
                     .background(Color.White.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
@@ -589,9 +422,7 @@ private fun OnboardingPage(
 }
 
 @Composable
-private fun PageIndicator(
-    isSelected: Boolean
-) {
+private fun PageIndicator(isSelected: Boolean) {
     val width: Dp by animateDpAsState(
         targetValue = if (isSelected) 32.dp else 10.dp,
         animationSpec = spring(
