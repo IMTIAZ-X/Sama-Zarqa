@@ -16,8 +16,8 @@ import com.imtbytes.samazarqa.viewmodel.MainViewModel
 import com.imtbytes.samazarqa.viewmodel.UiState
 
 /**
- * Main Activity - Entry point of Samazarqa Security App
- * Features: Splash+Onboarding (combined) → Home
+ * Production-ready MainActivity
+ * Optimized for performance and reliability
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,37 +30,35 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
             SamazarqaTheme(darkTheme = isDarkTheme) {
-                AnimatedContent(
-                    targetState = uiState,
-                    transitionSpec = {
-                        when {
-                            initialState is UiState.Loading && targetState is UiState.Home -> {
-                                slideInHorizontally(tween(700)) { it } + fadeIn(tween(700)) togetherWith
-                                        slideOutHorizontally(tween(700)) { -it } + fadeOut(tween(700))
-                            }
-                            else -> {
-                                fadeIn(tween(500)) togetherWith fadeOut(tween(500))
-                            }
-                        }
-                    },
-                    label = "AppNavigation"
-                ) { state ->
-                    when (state) {
-                        is UiState.Loading -> {
-                            SplashScreen(
-                                onSplashFinished = {
+                when (val state = uiState) {
+                    is UiState.Loading -> {
+                        // Show nothing or simple loading
+                        // State will change quickly to Ready
+                    }
+                    
+                    is UiState.Ready -> {
+                        // Splash screen handles both first launch and returning users
+                        SplashScreen(
+                            isFirstLaunch = state.isFirstLaunch,
+                            onFinished = {
+                                if (state.isFirstLaunch) {
+                                    // First time - save and go to home
                                     viewModel.completeOnboarding()
+                                } else {
+                                    // Returning user - just go to home
+                                    viewModel.navigateToHome()
                                 }
-                            )
-                        }
-                        
-                        is UiState.Home -> {
-                            HomeScreen(
-                                isDarkTheme = isDarkTheme,
-                                onThemeToggle = { isDarkTheme = !isDarkTheme },
-                                isSecure = state.isSecure
-                            )
-                        }
+                            }
+                        )
+                    }
+                    
+                    is UiState.Home -> {
+                        // Smooth transition to home
+                        HomeScreen(
+                            isDarkTheme = isDarkTheme,
+                            onThemeToggle = { isDarkTheme = !isDarkTheme },
+                            isSecure = state.isSecure
+                        )
                     }
                 }
             }
