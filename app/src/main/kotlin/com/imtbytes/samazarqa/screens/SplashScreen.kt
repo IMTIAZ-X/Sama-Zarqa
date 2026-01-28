@@ -10,7 +10,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.rounded.Analytics
+import androidx.compose.material.icons.rounded.DoneAll
+import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,294 +25,74 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.imtbytes.samazarqa.ui.theme.PrimaryBlue
+import com.imtbytes.samazarqa.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Production-ready Splash Screen
- * Optimized for performance with minimal animations
- */
 @Composable
 fun SplashScreen(
     isFirstLaunch: Boolean,
-    onFinished: () -> Unit
+    onOnboardingFinished: () -> Unit = {}
 ) {
-    // Simple state - no heavy animations
-    var showContent by remember { mutableStateOf(false) }
+    // --- Existing States ---
+    val alphaAnim = remember { Animatable(0f) }
+
+    // --- New States for Transition ---
+    var isSplashFinished by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        delay(300) // Short delay for smooth entry
-        showContent = true
+        // Your original animation
+        alphaAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(900, easing = FastOutSlowInEasing)
+        )
+
+        delay(1500)
+        isSplashFinished = true
         
+        // FIX: If returning user, automatically go to home after splash
         if (!isFirstLaunch) {
-            // Returning user - skip to home quickly
-            delay(1500)
-            onFinished()
+            delay(500) // Short delay for smooth transition
+            onOnboardingFinished()
         }
-        // First time users will see onboarding, controlled by buttons
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PrimaryBlue)
+            .background(PrimaryBlue),
+        contentAlignment = Alignment.Center
     ) {
-        if (isFirstLaunch && showContent) {
-            // First launch - show onboarding
-            OnboardingContent(onFinished = onFinished)
-        } else {
-            // Returning user - simple splash
-            SimpleSplash(show = showContent)
-        }
-    }
-}
-
-/**
- * Simple splash for returning users - minimal animation
- */
-@Composable
-private fun SimpleSplash(show: Boolean) {
-    AnimatedVisibility(
-        visible = show,
-        enter = fadeIn(tween(400))
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "SAMAZARQA",
-                color = Color.White,
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 6.sp
-            )
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Text(
-                text = "Security Suite",
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 2.sp
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            CircularProgressIndicator(
-                color = Color.White,
-                strokeWidth = 3.dp,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-    }
-}
-
-/**
- * Onboarding for first-time users
- * Optimized with minimal animations
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun OnboardingContent(
-    onFinished: () -> Unit
-) {
-    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
-    val scope = rememberCoroutineScope()
-    
-    val isLastPage = pagerState.currentPage == onboardingPages.size - 1
-    
-    // Button click states to prevent double-clicks
-    var isNavigating by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(20.dp)
-    ) {
-        // Skip Button
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            if (!isLastPage) {
-                TextButton(
-                    onClick = {
-                        if (!isNavigating) {
-                            isNavigating = true
-                            onFinished()
-                        }
-                    },
-                    enabled = !isNavigating
-                ) {
+        AnimatedContent(
+            targetState = isSplashFinished && isFirstLaunch, // FIX: Only show onboarding if first launch
+            label = "SplashToOnboarding",
+            transitionSpec = {
+                fadeIn(animationSpec = tween(600)) togetherWith
+                        fadeOut(animationSpec = tween(400))
+            }
+        ) { showOnboarding ->
+            if (showOnboarding) {
+                OnboardingContent(onFinished = onOnboardingFinished)
+            } else {
+                // --- EXISTING UI UNTOUCHED ---
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Skip",
+                        text = "SAMAZARQA",
+                        color = Color.White.copy(alpha = alphaAnim.value),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    CircularProgressIndicator(
                         color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-
-        // Pager
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f),
-            userScrollEnabled = !isNavigating
-        ) { pageIndex ->
-            OnboardingPage(data = onboardingPages[pageIndex])
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Bottom Navigation
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Page Indicators
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                repeat(onboardingPages.size) { index ->
-                    PageIndicator(isSelected = pagerState.currentPage == index)
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Next/Get Started Button
-            Button(
-                onClick = {
-                    if (!isNavigating) {
-                        if (isLastPage) {
-                            isNavigating = true
-                            onFinished()
-                        } else {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
-                        }
-                    }
-                },
-                enabled = !isNavigating,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = PrimaryBlue
-                ),
-                shape = RoundedCornerShape(14.dp),
-                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 12.dp)
-            ) {
-                Text(
-                    text = if (isLastPage) "Get Started" else "Next",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-                
-                if (!isLastPage) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Rounded.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(40.dp)
                     )
                 }
             }
         }
     }
-}
-
-/**
- * Simplified onboarding page - no heavy animations
- */
-@Composable
-private fun OnboardingPage(data: OnboardingPageData) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp)
-    ) {
-        // Icon Container - simple, no pulse animation
-        Box(
-            modifier = Modifier
-                .size(180.dp)
-                .clip(RoundedCornerShape(36.dp))
-                .background(Color.White.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(130.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = data.icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(70.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Text(
-            text = data.title,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            lineHeight = 36.sp
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = data.description,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Normal,
-            color = Color.White.copy(alpha = 0.85f),
-            textAlign = TextAlign.Center,
-            lineHeight = 22.sp
-        )
-    }
-}
-
-/**
- * Simple page indicator
- */
-@Composable
-private fun PageIndicator(isSelected: Boolean) {
-    val width: Dp by animateDpAsState(
-        targetValue = if (isSelected) 28.dp else 8.dp,
-        animationSpec = tween(200),
-        label = "indicatorWidth"
-    )
-    
-    Box(
-        modifier = Modifier
-            .width(width)
-            .height(8.dp)
-            .clip(CircleShape)
-            .background(
-                if (isSelected) Color.White else Color.White.copy(alpha = 0.4f)
-            )
-    )
 }
 
 private data class OnboardingPageData(
@@ -321,18 +103,168 @@ private data class OnboardingPageData(
 
 private val onboardingPages = listOf(
     OnboardingPageData(
-        title = "Advanced Security",
-        description = "Military-grade encryption and real-time threat detection to keep your data safe.",
-        icon = Icons.Rounded.Shield
-    ),
-    OnboardingPageData(
-        title = "Smart Monitoring",
-        description = "Intelligent analytics that track vulnerabilities and provide instant insights.",
+        title = "Track Your Work",
+        description = "Monitor your daily tasks and progress seamlessly with intuitive tracking tools.",
         icon = Icons.Rounded.Analytics
     ),
     OnboardingPageData(
-        title = "Total Protection",
-        description = "Complete security suite with vault encryption and automated defense.",
-        icon = Icons.Rounded.Verified
+        title = "Boost Productivity",
+        description = "Analyze your performance patterns to identify areas for improvement.",
+        icon = Icons.Rounded.TrendingUp
+    ),
+    OnboardingPageData(
+        title = "Achieve Goals",
+        description = "Set milestones and finish tasks efficiently. Take control of your workflow.",
+        icon = Icons.Rounded.DoneAll
     )
 )
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun OnboardingContent(onFinished: () -> Unit) {
+    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
+    val scope = rememberCoroutineScope()
+    val isLastPage by remember { derivedStateOf { pagerState.currentPage == onboardingPages.size - 1 } }
+    
+    // FIX: Add button click protection to prevent double-clicks
+    var isNavigating by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(24.dp)
+    ) {
+        // Skip Button Area
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            if (!isLastPage) {
+                TextButton(
+                    onClick = {
+                        // FIX: Prevent double-click
+                        if (!isNavigating) {
+                            isNavigating = true
+                            onFinished()
+                        }
+                    },
+                    enabled = !isNavigating // FIX: Disable button while navigating
+                ) {
+                    Text(
+                        text = "Skip",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+            userScrollEnabled = !isNavigating // FIX: Disable scrolling while navigating
+        ) { index ->
+            val data = onboardingPages[index]
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(Color.White.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = data.icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(80.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                Text(
+                    text = data.title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = data.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        // Bottom Navigation
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Indicators
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(onboardingPages.size) { i ->
+                    val isSelected = pagerState.currentPage == i
+                    val width: Dp by animateDpAsState(
+                        targetValue = if (isSelected) 24.dp else 8.dp,
+                        label = "width"
+                    )
+                    val color: Color by animateColorAsState(
+                        targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.3f),
+                        label = "color"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .height(8.dp)
+                            .width(width)
+                            .clip(CircleShape)
+                            .background(color)
+                    )
+                }
+            }
+
+            Button(
+                onClick = {
+                    // FIX: Prevent double-click and add proper navigation
+                    if (!isNavigating) {
+                        if (isLastPage) {
+                            isNavigating = true
+                            onFinished()
+                        } else {
+                            scope.launch { 
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1) 
+                            }
+                        }
+                    }
+                },
+                enabled = !isNavigating, // FIX: Disable button while navigating
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White, 
+                    contentColor = PrimaryBlue
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = if (isLastPage) "Get Started" else "Next",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
