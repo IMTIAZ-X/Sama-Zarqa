@@ -11,17 +11,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Enhanced UI State with Onboarding support
+ * Simplified UI State - Loading (with onboarding) or Home
  */
 sealed interface UiState {
-    data object Loading : UiState
-    data object Onboarding : UiState
+    data object Loading : UiState  // This includes splash + onboarding
     data class Home(val isSecure: Boolean) : UiState
 }
 
 /**
  * Main ViewModel managing app-wide state and security
- * Now with onboarding persistence support
  */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -31,6 +29,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val uiState = _uiState.asStateFlow()
     
     private var isSecurityCheckPassed: Boolean = false
+    private var hasCompletedOnboarding: Boolean = false
 
     init {
         initializeApp()
@@ -44,50 +43,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Run security check in background
             runSecurityProcess()
             
-            // Check if user has completed onboarding
-            val onboardingCompleted = appPreferences.isOnboardingCompleted.first()
+            // Check if user has completed onboarding before
+            hasCompletedOnboarding = appPreferences.isOnboardingCompleted.first()
             
-            if (onboardingCompleted) {
-                // Skip directly to home after splash
-                _uiState.value = UiState.Loading
-            } else {
-                // Show onboarding after splash
-                _uiState.value = UiState.Loading
-            }
+            // Stay in Loading state (SplashScreen will handle everything)
+            _uiState.value = UiState.Loading
         }
     }
 
     /**
-     * Called from SplashScreen after animation completes
-     */
-    suspend fun onSplashFinished() {
-        val onboardingCompleted = appPreferences.isOnboardingCompleted.first()
-        
-        if (onboardingCompleted) {
-            // Go directly to home
-            _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
-        } else {
-            // Show onboarding
-            _uiState.value = UiState.Onboarding
-        }
-    }
-
-    /**
-     * Called when user completes or skips onboarding
+     * Called when user completes onboarding (or skips it)
+     * This is called from SplashScreen after onboarding finishes
      */
     fun completeOnboarding() {
         viewModelScope.launch {
-            appPreferences.setOnboardingCompleted()
+            // Save that onboarding is completed (for next app launch)
+            if (!hasCompletedOnboarding) {
+                appPreferences.setOnboardingCompleted()
+            }
+            
+            // Navigate to home
             _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
         }
     }
 
     /**
-     * Navigate to home (legacy support)
+     * Check if this is first launch (for SplashScreen to decide)
      */
-    fun navigateToHome() {
-        _uiState.value = UiState.Home(isSecure = isSecurityCheckPassed)
-    }
+    fun isFirstLaunch(): Boolean = !hasCompletedOnboarding
 
     /**
      * Background security verification process
@@ -148,6 +131,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun resetOnboardingForTesting() {
         viewModelScope.launch {
             appPreferences.resetOnboarding()
+            hasCompletedOnboarding = false
         }
     }
 }
