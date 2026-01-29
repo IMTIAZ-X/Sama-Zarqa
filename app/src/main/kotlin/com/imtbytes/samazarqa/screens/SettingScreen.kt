@@ -20,26 +20,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.PrimaryBlue
 
+/**
+ * Samazarqa Settings Screen
+ * সংশোধিত: onThemeToggle প্যারামিটার যোগ করা হয়েছে যাতে Dark Mode কাজ করে।
+ */
 @Composable
-fun SettingScreen(isDarkTheme: Boolean) {
+fun SettingScreen(
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp),
         contentPadding = PaddingValues(top = 20.dp, bottom = 40.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header
+        // Header Section
         item {
             Text(
                 text = "Settings",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(vertical = 8.dp)
             )
         }
 
-        // Security Settings Group
+        // Appearance Group
+        item {
+            SettingsGroup(title = "Appearance") {
+                SettingItemToggle(
+                    title = "Dark Mode",
+                    subtitle = "Adjust app visual experience",
+                    icon = if (isDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                    initialState = isDarkTheme,
+                    onToggle = { onThemeToggle() }
+                )
+            }
+        }
+
+        // Security Group
         item {
             SettingsGroup(title = "Security & Privacy") {
                 SettingItemToggle(
@@ -47,39 +69,31 @@ fun SettingScreen(isDarkTheme: Boolean) {
                     subtitle = "Monitor threats in background",
                     icon = Icons.Rounded.Shield,
                     initialState = true,
-                    onToggle = { /* Handle logic */ }
+                    onToggle = { /* Handle logic here */ }
                 )
                 SettingItemToggle(
                     title = "Biometric Login",
                     subtitle = "Use Fingerprint or FaceID",
                     icon = Icons.Rounded.Fingerprint,
                     initialState = false,
-                    onToggle = { /* Handle logic */ }
-                )
-                SettingItemToggle(
-                    title = "App Lock",
-                    subtitle = "Lock sensitive apps",
-                    icon = Icons.Rounded.Lock,
-                    initialState = true,
-                    onToggle = { /* Handle logic */ }
+                    onToggle = { /* Handle logic here */ }
                 )
             }
         }
 
-        // General Settings Group
+        // General Group
         item {
             SettingsGroup(title = "General") {
-                SettingItemToggle(
-                    title = "Notifications",
-                    subtitle = "Security alerts & updates",
-                    icon = Icons.Rounded.Notifications,
-                    initialState = true,
-                    onToggle = { /* Handle logic */ }
-                )
                 SettingItemArrow(
                     title = "Language",
                     subtitle = "English (US)",
                     icon = Icons.Rounded.Language,
+                    onClick = { /* Navigate to Language Screen */ }
+                )
+                SettingItemArrow(
+                    title = "Notifications",
+                    subtitle = "Manage alerts",
+                    icon = Icons.Rounded.Notifications,
                     onClick = { /* Navigate */ }
                 )
             }
@@ -92,7 +106,7 @@ fun SettingScreen(isDarkTheme: Boolean) {
                     title = "Privacy Policy",
                     subtitle = null,
                     icon = Icons.Rounded.PrivacyTip,
-                    onClick = { /* Navigate */ }
+                    onClick = { /* Open URL */ }
                 )
                 SettingItemArrow(
                     title = "About Samazarqa",
@@ -104,6 +118,8 @@ fun SettingScreen(isDarkTheme: Boolean) {
         }
     }
 }
+
+// --- Helper UI Components ---
 
 @Composable
 fun SettingsGroup(
@@ -120,7 +136,7 @@ fun SettingsGroup(
         )
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -141,7 +157,7 @@ fun SettingItemToggle(
     initialState: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    var isChecked by remember { mutableStateOf(initialState) }
+    var isChecked by remember(initialState) { mutableStateOf(initialState) }
 
     Row(
         modifier = Modifier
@@ -169,9 +185,9 @@ fun SettingItemToggle(
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            if (subtitle != null) {
+            subtitle?.let {
                 Text(
-                    text = subtitle,
+                    text = it,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -210,7 +226,7 @@ fun SettingItemArrow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -221,9 +237,9 @@ fun SettingItemArrow(
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            if (subtitle != null) {
+            subtitle?.let {
                 Text(
-                    text = subtitle,
+                    text = it,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -232,8 +248,8 @@ fun SettingItemArrow(
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
         )
     }
 }
