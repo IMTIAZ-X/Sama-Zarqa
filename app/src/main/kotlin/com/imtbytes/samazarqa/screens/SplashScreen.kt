@@ -1,4 +1,4 @@
-package com.imtbytes.samazarqa.screens.splash
+package com.imtbytes.samazarqa.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
