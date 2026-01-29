@@ -285,7 +285,6 @@ fun ServiceCard(title: String, icon: ImageVector, modifier: Modifier, onClick: (
 }
 
 @Composable
-@Composable
 fun LogItem(title: String, status: String, icon: ImageVector, color: Color) {
     Surface(
         modifier = Modifier.fillMaxWidth(), 
