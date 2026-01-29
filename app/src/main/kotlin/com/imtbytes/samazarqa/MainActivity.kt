@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
                 AnimatedContent(
                     targetState = uiState,
                     transitionSpec = {
+                    /*
                         when {
                             initialState is UiState.Loading && targetState is UiState.Home -> {
                                 slideInHorizontally(tween(700)) { it } + fadeIn(tween(700)) togetherWith
@@ -42,6 +43,9 @@ class MainActivity : ComponentActivity() {
                                 fadeIn(tween(500)) togetherWith fadeOut(tween(500))
                             }
                         }
+                        */
+                        fadeIn(animationSpec = tween(700)) togetherWith 
+                        fadeOut(animationSpec = tween(700))
                     },
                     label = "AppNavigation"
                 ) { state ->
