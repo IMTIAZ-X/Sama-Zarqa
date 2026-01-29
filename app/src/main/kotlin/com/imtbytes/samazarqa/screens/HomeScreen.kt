@@ -1,4 +1,4 @@
-package com.imtbytes.samazarqa.screens.home
+package com.imtbytes.samazarqa.screens
 
 import android.os.Build
 import android.os.VibrationEffect
