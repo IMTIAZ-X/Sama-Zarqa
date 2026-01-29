@@ -1,8 +1,9 @@
-package com.imtbytes.samazarqa.screens
+package com.imtbytes.samazarqa.screens.home
 
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.QrCodeScanner // Ensure this import exists or use Default
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,10 +32,15 @@ import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
 import kotlinx.coroutines.launch
 
-/**
- * Enhanced Home Screen with modern Material 3 design
- * Features: Security status, service cards, protection logs, haptic feedback
- */
+// Navigation Items Enum
+enum class NavItem(val icon: ImageVector, val label: String) {
+    Home(Icons.Default.Home, "Home"),
+    QR(Icons.Default.QrCodeScanner, "QR"),
+    Downloader(Icons.Default.Download, "Download"),
+    Profile(Icons.Default.Person, "Profile"),
+    Settings(Icons.Default.Settings, "Setting")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -43,21 +50,18 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val vibrator = context.getSystemService(Vibrator::class.java)
-    
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // State for selected Navigation Item
+    var selectedItem by remember { mutableStateOf(NavItem.Home) }
 
     // Haptic feedback helper
     val triggerHaptic: () -> Unit = {
         try {
             vibrator?.let { v ->
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    v.vibrate(
-                        VibrationEffect.createOneShot(
-                            35,
-                            VibrationEffect.DEFAULT_AMPLITUDE
-                        )
-                    )
+                    v.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
                 } else {
                     @Suppress("DEPRECATION")
                     v.vibrate(35)
@@ -79,164 +83,291 @@ fun HomeScreen(
         },
         containerColor = if (isDarkTheme) Color(0xFF0D0D0D) else Color(0xFFF8F9FA),
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "SAMAZARQA",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlue,
-                            letterSpacing = 1.5.sp
-                        )
-                        Text(
-                            text = "Dashboard",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
-                        )
-                    }
-                },
-                actions = {
-                    Surface(
-                        onClick = {
-                            triggerHaptic()
-                            onThemeToggle()
-                        },
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle theme",
-                            tint = PrimaryBlue,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+            // Only show TopBar on Home Screen, or modify as needed
+            if (selectedItem == NavItem.Home) {
+                LargeTopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "SAMAZARQA",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryBlue,
+                                letterSpacing = 1.5.sp
+                            )
+                            Text(
+                                text = "Dashboard",
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
+                            )
+                        }
+                    },
+                    actions = {
+                        Surface(
+                            onClick = {
+                                triggerHaptic()
+                                onThemeToggle()
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = "Toggle theme",
+                                tint = PrimaryBlue,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    )
                 )
-            )
+            }
         }
     ) { padding ->
-        LazyColumn(
+        // Main Row Layout: Content on Left, NavigationRail on Right
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 40.dp)
         ) {
-            // Security Status Card
-            item {
-                SecurityStatusCard(isSecure)
-            }
-
-            // Section Header
-            item {
-                Text(
-                    text = "Security Suite",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
-                    color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
-                )
-            }
-
-            // Service Cards Grid
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        ServiceCard(
-                            title = "System Lock",
-                            icon = Icons.Default.AdminPanelSettings,
-                            modifier = Modifier.weight(1f),
-                            onHaptic = triggerHaptic
-                        ) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("System Hardened ✓")
-                            }
+            // 1. Content Area (Takes remaining space)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                // Smooth transition between screens
+                AnimatedContent(
+                    targetState = selectedItem,
+                    label = "ScreenTransition"
+                ) { targetScreen ->
+                    when (targetScreen) {
+                        NavItem.Home -> {
+                            // EXISTING HOME CONTENT
+                            HomeContent(
+                                isDarkTheme = isDarkTheme,
+                                isSecure = isSecure,
+                                triggerHaptic = triggerHaptic,
+                                snackbarHostState = snackbarHostState,
+                                scope = scope
+                            )
                         }
-                        ServiceCard(
-                            title = "WiFi Scan",
-                            icon = Icons.Default.WifiTethering,
-                            modifier = Modifier.weight(1f),
-                            onHaptic = triggerHaptic
-                        ) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Scanning Network...")
-                            }
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        ServiceCard(
-                            title = "Vault Pro",
-                            icon = Icons.Default.EnhancedEncryption,
-                            modifier = Modifier.weight(1f),
-                            onHaptic = triggerHaptic
-                        ) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Vault Secured ✓")
-                            }
-                        }
-                        ServiceCard(
-                            title = "Log Wipe",
-                            icon = Icons.Default.CleaningServices,
-                            modifier = Modifier.weight(1f),
-                            onHaptic = triggerHaptic
-                        ) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Logs Purged ✓")
-                            }
-                        }
+                        NavItem.QR -> PlaceholderScreen("QR Scanner", isDarkTheme)
+                        NavItem.Downloader -> PlaceholderScreen("Downloader", isDarkTheme)
+                        NavItem.Profile -> PlaceholderScreen("Profile", isDarkTheme)
+                        NavItem.Settings -> PlaceholderScreen("Settings", isDarkTheme)
                     }
                 }
             }
 
-            // Section Header
-            item {
-                Text(
-                    text = "Protection Logs",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
-                    color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
-                )
-            }
-
-            // Protection Logs
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    LogItem(
-                        title = "Encrypted Traffic",
-                        status = "AES-256 Enabled",
-                        icon = Icons.Default.Security,
-                        color = Color(0xFF4CAF50)
-                    )
-                    LogItem(
-                        title = "Anti-Tamper",
-                        status = "Shielding Memory",
-                        icon = Icons.Default.RemoveModerator,
-                        color = PrimaryBlue
-                    )
-                    LogItem(
-                        title = "Firewall Active",
-                        status = "Blocking Threats",
-                        icon = Icons.Default.GppGood,
-                        color = Color(0xFFFF9800)
-                    )
+            // 2. Navigation Rail (Right Side)
+            NavigationRail(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(vertical = 16.dp, horizontal = 8.dp)
+                    .clip(RoundedCornerShape(24.dp)), // Rounder corners as requested
+                containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White,
+                contentColor = PrimaryBlue,
+                header = null
+            ) {
+                // Centering the items vertically
+                Column(
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    NavItem.entries.forEach { item ->
+                        NavigationRailItem(
+                            selected = selectedItem == item,
+                            onClick = {
+                                triggerHaptic()
+                                selectedItem = item
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.label,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = item.label,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = PrimaryBlue,
+                                indicatorColor = PrimaryBlue,
+                                unselectedIconColor = if (isDarkTheme) Color.Gray else Color.DarkGray,
+                                unselectedTextColor = if (isDarkTheme) Color.Gray else Color.DarkGray
+                            ),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+/**
+ * Extracted Home Content to keep logic clean and work with Navigation
+ */
+@Composable
+fun HomeContent(
+    isDarkTheme: Boolean,
+    isSecure: Boolean,
+    triggerHaptic: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(bottom = 40.dp)
+    ) {
+        // Security Status Card
+        item {
+            SecurityStatusCard(isSecure)
+        }
+
+        // Section Header
+        item {
+            Text(
+                text = "Security Suite",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
+                color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
+            )
+        }
+
+        // Service Cards Grid
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ServiceCard(
+                        title = "System Lock",
+                        icon = Icons.Default.AdminPanelSettings,
+                        modifier = Modifier.weight(1f),
+                        onHaptic = triggerHaptic
+                    ) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("System Hardened ✓")
+                        }
+                    }
+                    ServiceCard(
+                        title = "WiFi Scan",
+                        icon = Icons.Default.WifiTethering,
+                        modifier = Modifier.weight(1f),
+                        onHaptic = triggerHaptic
+                    ) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Scanning Network...")
+                        }
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ServiceCard(
+                        title = "Vault Pro",
+                        icon = Icons.Default.EnhancedEncryption,
+                        modifier = Modifier.weight(1f),
+                        onHaptic = triggerHaptic
+                    ) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Vault Secured ✓")
+                        }
+                    }
+                    ServiceCard(
+                        title = "Log Wipe",
+                        icon = Icons.Default.CleaningServices,
+                        modifier = Modifier.weight(1f),
+                        onHaptic = triggerHaptic
+                    ) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Logs Purged ✓")
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section Header
+        item {
+            Text(
+                text = "Protection Logs",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
+                color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
+            )
+        }
+
+        // Protection Logs
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LogItem(
+                    title = "Encrypted Traffic",
+                    status = "AES-256 Enabled",
+                    icon = Icons.Default.Security,
+                    color = Color(0xFF4CAF50)
+                )
+                LogItem(
+                    title = "Anti-Tamper",
+                    status = "Shielding Memory",
+                    icon = Icons.Default.RemoveModerator,
+                    color = PrimaryBlue
+                )
+                LogItem(
+                    title = "Firewall Active",
+                    status = "Blocking Threats",
+                    icon = Icons.Default.GppGood,
+                    color = Color(0xFFFF9800)
+                )
+            }
+        }
+    }
+}
+
+// Temporary Placeholder for other screens (Use separate files later)
+@Composable
+fun PlaceholderScreen(title: String, isDarkTheme: Boolean) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = null,
+                tint = PrimaryBlue,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "$title Coming Soon",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDarkTheme) Color.White else Color.Black
+            )
+        }
+    }
+}
+
+// --- DO NOT REMOVE BELOW COMPONENTS ---
 
 /**
  * Security Status Card - Shows current protection status
