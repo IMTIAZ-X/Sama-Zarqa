@@ -285,19 +285,46 @@ fun ServiceCard(title: String, icon: ImageVector, modifier: Modifier, onClick: (
 }
 
 @Composable
+@Composable
 fun LogItem(title: String, status: String, icon: ImageVector, color: Color) {
-    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp) {
-        Row(Modifier.padding(18.dp), Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(14.dp)), Alignment.Center) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(), 
+        shape = RoundedCornerShape(20.dp), 
+        color = MaterialTheme.colorScheme.surface, 
+        shadowElevation = 2.dp
+    ) {
+        // নিচে 'verticalAlignment =' অংশটি যোগ করা হয়েছে
+        Row(
+            modifier = Modifier.padding(18.dp), 
+            verticalAlignment = Alignment.CenterVertically 
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(color.copy(alpha = 0.12f), RoundedCornerShape(14.dp)), 
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
             }
-            Spacer(Modifier.width(16.dp))
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
             Column {
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(status, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 13.sp)
+                Text(
+                    text = status, 
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), 
+                    fontSize = 13.sp
+                )
             }
-            Spacer(Modifier.weight(1f))
-            Box(Modifier.size(10.dp).background(color, CircleShape))
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(color, CircleShape)
+            )
         }
     }
 }
