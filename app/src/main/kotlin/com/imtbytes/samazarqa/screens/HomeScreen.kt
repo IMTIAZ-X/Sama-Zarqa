@@ -1,4 +1,4 @@
-package com.imtbytes.samazarqa.screens.home
+package com.imtbytes.samazarqa.screens
 
 import android.os.Build
 import android.os.VibrationEffect
@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.QrCodeScanner // Ensure this import exists or use Default
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
+import com.imtbytes.samazarqa.screens.*
 import kotlinx.coroutines.launch
 
 // Navigation Items Enum
@@ -83,7 +84,7 @@ fun HomeScreen(
         },
         containerColor = if (isDarkTheme) Color(0xFF0D0D0D) else Color(0xFFF8F9FA),
         topBar = {
-            // Only show TopBar on Home Screen, or modify as needed
+            // Only show TopBar on Home Screen
             if (selectedItem == NavItem.Home) {
                 LargeTopAppBar(
                     title = {
@@ -148,7 +149,6 @@ fun HomeScreen(
                 ) { targetScreen ->
                     when (targetScreen) {
                         NavItem.Home -> {
-                            // EXISTING HOME CONTENT
                             HomeContent(
                                 isDarkTheme = isDarkTheme,
                                 isSecure = isSecure,
@@ -157,10 +157,11 @@ fun HomeScreen(
                                 scope = scope
                             )
                         }
-                        NavItem.QR -> PlaceholderScreen("QR Scanner", isDarkTheme)
-                        NavItem.Downloader -> PlaceholderScreen("Downloader", isDarkTheme)
-                        NavItem.Profile -> PlaceholderScreen("Profile", isDarkTheme)
-                        NavItem.Settings -> PlaceholderScreen("Settings", isDarkTheme)
+                        // Integration of Real Screens
+                        NavItem.QR -> ScannerScreen(isDarkTheme)
+                        NavItem.Downloader -> DownloaderScreen(isDarkTheme)
+                        NavItem.Profile -> ProfileScreen(isDarkTheme)
+                        NavItem.Settings -> SettingScreen(isDarkTheme)
                     }
                 }
             }
@@ -170,7 +171,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxHeight()
                     .padding(vertical = 16.dp, horizontal = 8.dp)
-                    .clip(RoundedCornerShape(24.dp)), // Rounder corners as requested
+                    .clip(RoundedCornerShape(24.dp)),
                 containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White,
                 contentColor = PrimaryBlue,
                 header = null
@@ -342,32 +343,7 @@ fun HomeContent(
     }
 }
 
-// Temporary Placeholder for other screens (Use separate files later)
-@Composable
-fun PlaceholderScreen(title: String, isDarkTheme: Boolean) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Build,
-                contentDescription = null,
-                tint = PrimaryBlue,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "$title Coming Soon",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) Color.White else Color.Black
-            )
-        }
-    }
-}
-
-// --- DO NOT REMOVE BELOW COMPONENTS ---
+// --- CORE COMPONENTS (DO NOT REMOVE) ---
 
 /**
  * Security Status Card - Shows current protection status
