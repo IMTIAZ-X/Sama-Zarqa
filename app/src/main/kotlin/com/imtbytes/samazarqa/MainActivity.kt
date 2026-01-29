@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.imtbytes.samazarqa.screens.home.HomeScreen
-// IMPORT FIX: এই লাইনটি নিশ্চিত করা হলো
 import com.imtbytes.samazarqa.screens.splash.SplashScreen
 import com.imtbytes.samazarqa.ui.theme.SamazarqaTheme
 import com.imtbytes.samazarqa.viewmodel.MainViewModel
@@ -34,9 +33,15 @@ class MainActivity : ComponentActivity() {
                 AnimatedContent(
                     targetState = uiState,
                     transitionSpec = {
-                        // Custom transition for smoother UX
-                        fadeIn(animationSpec = tween(700)) togetherWith 
-                        fadeOut(animationSpec = tween(700))
+                        when {
+                            initialState is UiState.Loading && targetState is UiState.Home -> {
+                                slideInHorizontally(tween(700)) { it } + fadeIn(tween(700)) togetherWith
+                                        slideOutHorizontally(tween(700)) { -it } + fadeOut(tween(700))
+                            }
+                            else -> {
+                                fadeIn(tween(500)) togetherWith fadeOut(tween(500))
+                            }
+                        }
                     },
                     label = "AppNavigation"
                 ) { state ->
@@ -46,7 +51,7 @@ class MainActivity : ComponentActivity() {
                         }
                         
                         is UiState.Home -> {
-                            // Logic to decide between Splash or Home
+                            // FIX: Check if first launch to decide splash behavior
                             if (state.isFirstLaunch) {
                                 // First time user - show splash with onboarding
                                 SplashScreen(
@@ -56,7 +61,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             } else {
-                                // Returning user - show splash briefly then home
+                                // FIX: Returning user - show splash then go to home
                                 var showingSplash by remember { mutableStateOf(true) }
                                 
                                 if (showingSplash) {
