@@ -9,8 +9,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.imtbytes.samazarqa.screens.home.HomeScreen
-import com.imtbytes.samazarqa.screens.splash.SplashScreen
+import com.imtbytes.samazarqa.screens.HomeScreen
+import com.imtbytes.samazarqa.screens.SplashScreen
 import com.imtbytes.samazarqa.ui.theme.SamazarqaTheme
 import com.imtbytes.samazarqa.viewmodel.MainViewModel
 import com.imtbytes.samazarqa.viewmodel.UiState
