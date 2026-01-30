@@ -30,10 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
-import com.imtbytes.samazarqa.screens.ScannerScreen
-import com.imtbytes.samazarqa.screens.DownloaderScreen
-import com.imtbytes.samazarqa.screens.ProfileScreen
-import com.imtbytes.samazarqa.screens.SettingScreen
+import com.imtbytes.samazarqa.screens.*
 import kotlinx.coroutines.launch
 
 // Navigation Items Enum
