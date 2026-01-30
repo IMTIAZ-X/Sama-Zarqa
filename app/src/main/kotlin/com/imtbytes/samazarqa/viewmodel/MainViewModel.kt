@@ -28,6 +28,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val appPreferences = AppPreferences(application)
     
+    private val preferences = AppPreferences(application)
+    
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
     
@@ -54,6 +56,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 isSecure = isSecurityCheckPassed,
                 isFirstLaunch = !hasCompletedOnboarding  // FIX: এটা যোগ করা
             )
+            
+               // UI State এর পাশাপাশি থিম ফ্লো
+    val currentTheme = preferences.appTheme
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AppTheme.SYSTEM
+        )
+
+    fun updateTheme(theme: AppTheme) {
+        viewModelScope.launch {
+            preferences.setAppTheme(theme)
+        }
+    }
+
         }
     }
 
