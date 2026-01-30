@@ -1,8 +1,5 @@
 package com.imtbytes.samazarqa.screens
 
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.LocalIndication
@@ -30,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
-import com.imtbytes.samazarqa.screens.*
 import kotlinx.coroutines.launch
 
 // Navigation Items Enum
@@ -46,30 +42,17 @@ enum class NavItem(val icon: ImageVector, val label: String) {
 @Composable
 fun HomeScreen(
     isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
     isSecure: Boolean
 ) {
     val context = LocalContext.current
-    val vibrator = context.getSystemService(Vibrator::class.java)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     // State for selected Navigation Item
     var selectedItem by remember { mutableStateOf(NavItem.Home) }
-
-    // Haptic feedback helper
-    val triggerHaptic: () -> Unit = {
-        try {
-            vibrator?.let { v ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    v.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
-                } else {
-                    @Suppress("DEPRECATION")
-                    v.vibrate(35)
-                }
-            }
-        } catch (e: Exception) { /* Ignore */ }
-    }
+    
+    var isSearching by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         snackbarHost = {
@@ -84,51 +67,52 @@ fun HomeScreen(
         },
         containerColor = if (isDarkTheme) Color(0xFF0D0D0D) else Color(0xFFF8F9FA),
         topBar = {
-            // Only show TopBar on Home Screen
-            if (selectedItem == NavItem.Home) {
-                LargeTopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = "SAMAZARQA",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryBlue,
-                                letterSpacing = 1.5.sp
-                            )
-                            Text(
-                                text = "Dashboard",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isDarkTheme) Color.White else Color(0xFF1A1A1A)
-                            )
+    // HomeScreen AppBar 
+    if (selectedItem == NavItem.Home) {
+        CenterAlignedTopAppBar(
+            title = {
+                AnimatedContent(
+                    targetState = isSearching,
+                    label = "SearchAnimation"
+                ) { searching ->
+                    if (searching) {
+                      
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Search protection...") },
+                            modifier = Modifier.fillMaxWidth(0.9f).height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true
+                        )
+                    } else {
+                     
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("SAMAZARQA", fontSize = 12.sp, color = PrimaryBlue)
+                            Text("Security Hub", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         }
-                    },
-                    actions = {
-                        Surface(
-                            onClick = {
-                                triggerHaptic()
-                                onThemeToggle()
-                            },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(end = 12.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                contentDescription = "Toggle theme",
-                                tint = PrimaryBlue,
-                                modifier = Modifier.padding(12.dp)
+                    }
+                }
+            },
+            actions = {
+                
+                IconButton(onClick = { 
+                 if (isSearching) {
+                   searchQuery = "" // সার্চ টেক্সট ক্লিয়ার হবে
+                  }
+                    isSearching = !isSearching 
+                    }) {
+                      Icon(
+                        imageVector = if (isSearching) Icons.Default.Close else Icons.Default.Search,
+                           contentDescription = "Search",
+                            tint = PrimaryBlue
                             )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent
-                    )
-                )
-            }
-        }
+                      }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+        )
+    }
+}
     ) { padding ->
         // Main Row Layout: Content on Left, NavigationRail on Right
         Row(
@@ -152,7 +136,6 @@ fun HomeScreen(
                             HomeContent(
                                 isDarkTheme = isDarkTheme,
                                 isSecure = isSecure,
-                                triggerHaptic = triggerHaptic,
                                 snackbarHostState = snackbarHostState,
                                 scope = scope
                             )
@@ -185,7 +168,6 @@ fun HomeScreen(
                         NavigationRailItem(
                             selected = selectedItem == item,
                             onClick = {
-                                triggerHaptic()
                                 selectedItem = item
                             },
                             icon = {
@@ -225,7 +207,6 @@ fun HomeScreen(
 fun HomeContent(
     isDarkTheme: Boolean,
     isSecure: Boolean,
-    triggerHaptic: () -> Unit,
     snackbarHostState: SnackbarHostState,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
@@ -262,7 +243,6 @@ fun HomeContent(
                         title = "System Lock",
                         icon = Icons.Default.AdminPanelSettings,
                         modifier = Modifier.weight(1f),
-                        onHaptic = triggerHaptic
                     ) {
                         scope.launch {
                             snackbarHostState.showSnackbar("System Hardened ✓")
@@ -271,8 +251,7 @@ fun HomeContent(
                     ServiceCard(
                         title = "WiFi Scan",
                         icon = Icons.Default.WifiTethering,
-                        modifier = Modifier.weight(1f),
-                        onHaptic = triggerHaptic
+                        modifier = Modifier.weight(1f)
                     ) {
                         scope.launch {
                             snackbarHostState.showSnackbar("Scanning Network...")
@@ -286,8 +265,7 @@ fun HomeContent(
                     ServiceCard(
                         title = "Vault Pro",
                         icon = Icons.Default.EnhancedEncryption,
-                        modifier = Modifier.weight(1f),
-                        onHaptic = triggerHaptic
+                        modifier = Modifier.weight(1f)
                     ) {
                         scope.launch {
                             snackbarHostState.showSnackbar("Vault Secured ✓")
@@ -296,8 +274,7 @@ fun HomeContent(
                     ServiceCard(
                         title = "Log Wipe",
                         icon = Icons.Default.CleaningServices,
-                        modifier = Modifier.weight(1f),
-                        onHaptic = triggerHaptic
+                        modifier = Modifier.weight(1f)
                     ) {
                         scope.launch {
                             snackbarHostState.showSnackbar("Logs Purged ✓")
@@ -450,7 +427,6 @@ fun ServiceCard(
     title: String,
     icon: ImageVector,
     modifier: Modifier,
-    onHaptic: () -> Unit,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -476,7 +452,6 @@ fun ServiceCard(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
                 onClick = {
-                    onHaptic()
                     onClick()
                 }
             ),
