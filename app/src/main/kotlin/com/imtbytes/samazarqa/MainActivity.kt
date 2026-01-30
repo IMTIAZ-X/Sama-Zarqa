@@ -32,76 +32,56 @@ class MainActivity : ComponentActivity() {
             val viewModel: MainViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             
-            val appTheme by viewModel.currentTheme.collectAsStateWithLifecycle()
+            // ViewModel থেকে থিম স্টেট নেওয়া হচ্ছে
+            val themePreference by viewModel.appTheme.collectAsStateWithLifecycle()
             
-            val systemInDarkTheme = isSystemInDarkTheme()
-            
-            var currentTheme by remember { mutableStateOf(AppTheme.SYSTEM) }
-            
-           
-            val useDarkTheme = when (themeState) {
-    AppTheme.LIGHT -> false
-    AppTheme.DARK -> true
-    AppTheme.SYSTEM -> isSystemInDarkTheme()
-    else -> isSystemInDarkTheme() // সেফটি চেক
-}
+            val isDarkTheme = when (themePreference) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
 
             SamazarqaTheme(darkTheme = isDarkTheme) {
-                AnimatedContent(
-                    targetState = uiState,
-                    transitionSpec = {
-                    /*
-                        when {
-                            initialState is UiState.Loading && targetState is UiState.Home -> {
-                                slideInHorizontally(tween(700)) { it } + fadeIn(tween(700)) togetherWith
-                                        slideOutHorizontally(tween(700)) { -it } + fadeOut(tween(700))
+                Surface {
+                    AnimatedContent(
+                        targetState = uiState,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(500)) togetherWith 
+                            fadeOut(animationSpec = tween(500))
+                        },
+                        label = "screen_transition"
+                    ) { state ->
+                        when (state) {
+                            UiState.Loading -> {
+                                // Loading state handle
                             }
-                            else -> {
-                                fadeIn(tween(500)) togetherWith fadeOut(tween(500))
-                            }
-                        }
-                        */
-                        fadeIn(animationSpec = tween(700)) togetherWith 
-                        fadeOut(animationSpec = tween(700))
-                    },
-                    label = "AppNavigation"
-                ) { state ->
-                    when (state) {
-                        is UiState.Loading -> {
-                            // Loading state - shows briefly
-                        }
-                        
-                        is UiState.Home -> {
-                            // FIX: Check if first launch to decide splash behavior
-                            if (state.isFirstLaunch) {
-                                // First time user - show splash with onboarding
-                                SplashScreen(
-                                    isFirstLaunch = true,
-                                    onSplashFinished = {
-                                        viewModel.completeOnboarding()
-                                    }
-                                )
-                            } else {
-                                // FIX: Returning user - show splash then go to home
-                                var showingSplash by remember { mutableStateOf(true) }
-                                
-                                if (showingSplash) {
+                            is UiState.Home -> {
+                                if (state.isFirstLaunch) {
                                     SplashScreen(
-                                        isFirstLaunch = false,
+                                        isFirstLaunch = true,
                                         onSplashFinished = {
-                                            showingSplash = false
+                                            viewModel.completeOnboarding()
                                         }
                                     )
                                 } else {
-                                    HomeScreen(
-                    isDarkTheme = isDarkTheme,
-                    isSecure = true, // অথবা ViewModel থেকে ডাটা নিন
-                    currentTheme = currentTheme,
-                    isSecure = state.isSecure,
-                    onThemeChanged = { newTheme ->
-                        currentTheme = newTheme
-                    }
-                )
+                                    var showingSplash by remember { mutableStateOf(true) }
+                                    
+                                    if (showingSplash) {
+                                        SplashScreen(
+                                            isFirstLaunch = false,
+                                            onSplashFinished = {
+                                                showingSplash = false
+                                            }
+                                        )
+                                    } else {
+                                        HomeScreen(
+                                            isSecure = state.isSecure,
+                                            currentTheme = themePreference,
+                                            onThemeChanged = { newTheme ->
+                                                viewModel.setTheme(newTheme)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
