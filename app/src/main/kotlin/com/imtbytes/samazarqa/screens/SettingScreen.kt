@@ -26,9 +26,24 @@ import com.imtbytes.samazarqa.ui.theme.PrimaryBlue
  */
 @Composable
 fun SettingScreen(
-    isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit
+    currentTheme: AppTheme, 
+    onThemeChanged: (AppTheme) -> Unit 
 ) {
+
+ var showThemeDialog by remember { mutableStateOf(false) }
+
+    if (showThemeDialog) {
+        ThemeSelectionDialog(
+            currentTheme = currentTheme,
+            onDismiss = { showThemeDialog = false },
+            onThemeSelected = {
+                onThemeChanged(it)
+                showThemeDialog = false
+            }
+        )
+    }
+		
+		
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -51,12 +66,19 @@ fun SettingScreen(
         // Appearance Group
         item {
             SettingsGroup(title = "Appearance") {
-                SettingItemToggle(
-                    title = "Dark Mode",
-                    subtitle = "Adjust app visual experience",
-                    icon = if (isDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
-                    initialState = isDarkTheme,
-                    onToggle = { onThemeToggle() }
+                SettingItemSelection(
+                    title = "App Theme",
+                    subtitle = when(currentTheme) {
+                        AppTheme.SYSTEM -> "Follow System System"
+                        AppTheme.LIGHT -> "Light Mode"
+                        AppTheme.DARK -> "Dark Mode"
+                    },
+                    icon = when(currentTheme) {
+                        AppTheme.SYSTEM -> Icons.Rounded.SettingsBrightness
+                        AppTheme.LIGHT -> Icons.Rounded.LightMode
+                        AppTheme.DARK -> Icons.Rounded.DarkMode
+                    },
+                    onClick = { showThemeDialog = true }
                 )
             }
         }
@@ -115,6 +137,87 @@ fun SettingScreen(
                     onClick = { /* Navigate */ }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun ThemeSelectionDialog(
+    currentTheme: AppTheme,
+    onDismiss: () -> Unit,
+    onThemeSelected: (AppTheme) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose Theme") },
+        text = {
+            Column {
+                ThemeRadioButton(
+                    selected = currentTheme == AppTheme.SYSTEM,
+                    title = "System Default",
+                    onClick = { onThemeSelected(AppTheme.SYSTEM) }
+                )
+                ThemeRadioButton(
+                    selected = currentTheme == AppTheme.LIGHT,
+                    title = "Light Mode",
+                    onClick = { onThemeSelected(AppTheme.LIGHT) }
+                )
+                ThemeRadioButton(
+                    selected = currentTheme == AppTheme.DARK,
+                    title = "Dark Mode",
+                    onClick = { onThemeSelected(AppTheme.DARK) }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun ThemeRadioButton(
+    selected: Boolean,
+    title: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = PrimaryBlue)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = title)
+    }
+}
+-
+@Composable
+fun SettingItemSelection(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = PrimaryBlue)
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, fontWeight = FontWeight.SemiBold)
+            Text(text = subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

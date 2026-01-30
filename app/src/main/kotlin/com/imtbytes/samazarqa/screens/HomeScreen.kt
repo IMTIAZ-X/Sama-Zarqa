@@ -43,7 +43,8 @@ enum class NavItem(val icon: ImageVector, val label: String) {
 fun HomeScreen(
     isDarkTheme: Boolean,
     isSecure: Boolean,
-    onThemeToggle: () -> Unit
+    currentTheme: AppTheme, 
+    onThemeChanged: (AppTheme) -> Unit
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -146,9 +147,9 @@ fun HomeScreen(
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
                         NavItem.Settings -> SettingScreen(
-                           isDarkTheme = isDarkTheme, 
-                           onThemeToggle = onThemeToggle 
-                        )
+                     		 currentTheme = currentTheme,
+         				     onThemeChanged = onThemeChanged
+        				 )
                     }
                 }
             }
