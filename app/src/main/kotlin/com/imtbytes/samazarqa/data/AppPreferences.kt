@@ -64,10 +64,10 @@ class AppPreferences(private val context: Context) {
     /**
      * Reset onboarding state (for testing/debugging)
      */
-     /*
+    
     suspend fun resetOnboarding() {
         context.dataStore.edit { preferences ->
             preferences[ONBOARDING_COMPLETED] = false
         }
-    }*/
+    }
 }
