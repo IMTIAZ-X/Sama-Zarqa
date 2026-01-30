@@ -145,13 +145,10 @@ fun HomeScreen(
                         NavItem.QR -> ScannerScreen(isDarkTheme)
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
-                        NavItem.Settings -> SettingScreen(isDarkTheme)
-                        
-                        // Pass the toggle function here!
-    NavItem.Settings -> SettingScreen(
-        isDarkTheme = isDarkTheme, 
-        onThemeToggle = onThemeToggle 
-    )
+                        NavItem.Settings -> SettingScreen(
+                           isDarkTheme = isDarkTheme, 
+                           onThemeToggle = onThemeToggle 
+                        )
                     }
                 }
             }
