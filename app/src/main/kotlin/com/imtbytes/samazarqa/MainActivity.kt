@@ -14,6 +14,10 @@ import com.imtbytes.samazarqa.screens.SplashScreen
 import com.imtbytes.samazarqa.ui.theme.SamazarqaTheme
 import com.imtbytes.samazarqa.viewmodel.MainViewModel
 import com.imtbytes.samazarqa.viewmodel.UiState
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.imtbytes.samazarqa.data.AppTheme
 
 /**
  * Main Activity - Entry point of Samazarqa Security App
@@ -35,11 +39,12 @@ class MainActivity : ComponentActivity() {
             var currentTheme by remember { mutableStateOf(AppTheme.SYSTEM) }
             
            
-            val isDarkTheme = when (currentTheme) {
-                AppTheme.LIGHT -> false
-                AppTheme.DARK -> true
-                AppTheme.SYSTEM -> isSystemInDarkTheme()
-            }
+            val useDarkTheme = when (themeState) {
+    AppTheme.LIGHT -> false
+    AppTheme.DARK -> true
+    AppTheme.SYSTEM -> isSystemInDarkTheme()
+    else -> isSystemInDarkTheme() // সেফটি চেক
+}
 
             SamazarqaTheme(darkTheme = isDarkTheme) {
                 AnimatedContent(
