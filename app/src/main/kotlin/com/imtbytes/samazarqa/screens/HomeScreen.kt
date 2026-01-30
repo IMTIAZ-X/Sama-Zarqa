@@ -46,7 +46,6 @@ enum class NavItem(val icon: ImageVector, val label: String) {
 @Composable
 fun HomeScreen(
     isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
     isSecure: Boolean
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
