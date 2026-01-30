@@ -20,6 +20,8 @@ class AppPreferences(private val context: Context) {
             name = "samazarqa_preferences"
         )
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        
+        private val APP_THEME = stringPreferencesKey("app_theme")
     }
 
     /**
@@ -40,13 +42,31 @@ class AppPreferences(private val context: Context) {
             preferences[ONBOARDING_COMPLETED] = true
         }
     }
+    
+    
+    val appTheme: Flow<AppTheme> = context.dataStore.data
+        .map { preferences ->
+            val themeName = preferences[APP_THEME] ?: AppTheme.SYSTEM.name
+            try {
+                AppTheme.valueOf(themeName)
+            } catch (e: IllegalArgumentException) {
+                AppTheme.SYSTEM
+            }
+        }
+   
+    suspend fun setAppTheme(theme: AppTheme) {
+        context.dataStore.edit { preferences ->
+            preferences[APP_THEME] = theme.name
+        }
+    }
 
     /**
      * Reset onboarding state (for testing/debugging)
      */
+     /*
     suspend fun resetOnboarding() {
         context.dataStore.edit { preferences ->
             preferences[ONBOARDING_COMPLETED] = false
         }
-    }
+    }*/
 }
