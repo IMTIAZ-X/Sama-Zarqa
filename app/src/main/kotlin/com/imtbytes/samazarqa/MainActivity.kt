@@ -25,9 +25,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            var isDarkTheme by remember { mutableStateOf(false) }
             val viewModel: MainViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            
+            val appTheme by viewModel.currentTheme.collectAsStateWithLifecycle()
+            
+            val systemInDarkTheme = isSystemInDarkTheme()
+            
+            var currentTheme by remember { mutableStateOf(AppTheme.SYSTEM) }
+            
+           
+            val isDarkTheme = when (currentTheme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
 
             SamazarqaTheme(darkTheme = isDarkTheme) {
                 AnimatedContent(
@@ -77,10 +89,14 @@ class MainActivity : ComponentActivity() {
                                     )
                                 } else {
                                     HomeScreen(
-                                        isDarkTheme = isDarkTheme,
-                                        onThemeToggle = { isDarkTheme = !isDarkTheme },
-                                        isSecure = state.isSecure
-                                    )
+                    isDarkTheme = isDarkTheme,
+                    isSecure = true, // অথবা ViewModel থেকে ডাটা নিন
+                    currentTheme = currentTheme,
+                    isSecure = state.isSecure,
+                    onThemeChanged = { newTheme ->
+                        currentTheme = newTheme
+                    }
+                )
                                 }
                             }
                         }
