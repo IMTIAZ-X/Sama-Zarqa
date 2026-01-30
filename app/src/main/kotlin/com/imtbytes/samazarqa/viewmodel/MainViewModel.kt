@@ -7,20 +7,26 @@ import com.imtbytes.samazarqa.data.AppPreferences
 import com.imtbytes.samazarqa.data.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 
+/**
+ * UI State - শুধু isFirstLaunch flag যোগ করা হয়েছে
+ */
 sealed interface UiState {
     data object Loading : UiState
     data class Home(
         val isSecure: Boolean,
-        val isFirstLaunch: Boolean
+        val isFirstLaunch: Boolean  // FIX: এটা যোগ করা হয়েছে
     ) : UiState
 }
 
+/**
+ * Main ViewModel managing app-wide state and security
+ */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val appPreferences = AppPreferences(application)
@@ -28,7 +34,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState = _uiState.asStateFlow()
     
-    // Theme state exposing from DataStore
+    // থিম স্টেট এক্সপোজ করা হচ্ছে
     val appTheme = appPreferences.appTheme.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -41,8 +47,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         initializeApp()
     }
 
+    /**
+     * Initialize app by checking onboarding status and running security
+     */
     private fun initializeApp() {
         viewModelScope.launch {
+            // Run security check in background
             launch(Dispatchers.Default) {
                 isSecurityCheckPassed = performHeavySecurityAlgos()
             }
@@ -95,8 +105,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         switchBomb()
     }
 
-    private fun decryptString(input: String): String = input.map { it - 1 }.joinToString("")
-    private fun confuseBytecode(x: Int): Int = try { x } finally { x }
+    private fun decryptString(input: String): String =
+        input.map { it - 1 }.joinToString("")
+
+    private fun confuseBytecode(x: Int): Int =
+        try { x } finally { x }
+
     private fun switchBomb() {
         when ((System.nanoTime() % 7).toInt()) {
             1, 3 -> { /* no-op security noise */ }
@@ -104,6 +118,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Debug function to reset onboarding (remove in production)
+     */
     fun resetOnboardingForTesting() {
         viewModelScope.launch {
             appPreferences.resetOnboarding()
