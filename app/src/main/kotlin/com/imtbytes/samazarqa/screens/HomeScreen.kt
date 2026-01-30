@@ -42,7 +42,8 @@ enum class NavItem(val icon: ImageVector, val label: String) {
 @Composable
 fun HomeScreen(
     isDarkTheme: Boolean,
-    isSecure: Boolean
+    isSecure: Boolean,
+    onThemeToggle: () -> Unit
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -145,6 +146,12 @@ fun HomeScreen(
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
                         NavItem.Settings -> SettingScreen(isDarkTheme)
+                        
+                        // Pass the toggle function here!
+    NavItem.Settings -> SettingScreen(
+        isDarkTheme = isDarkTheme, 
+        onThemeToggle = onThemeToggle 
+    )
                     }
                 }
             }
