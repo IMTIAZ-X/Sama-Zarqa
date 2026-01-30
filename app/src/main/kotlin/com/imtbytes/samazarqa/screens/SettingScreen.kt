@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.PrimaryBlue
+import com.imtbytes.samazarqa.data.AppTheme
 
 /**
  * Samazarqa Settings Screen

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
 import kotlinx.coroutines.launch
+import com.imtbytes.samazarqa.data.AppTheme
 
 // Navigation Items Enum
 enum class NavItem(val icon: ImageVector, val label: String) {
