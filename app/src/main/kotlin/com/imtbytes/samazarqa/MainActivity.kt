@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
                                 } else {
                                     HomeScreen(
                                         isDarkTheme = isDarkTheme,
+                                        onThemeToggle = { isDarkTheme = !isDarkTheme },
                                         isSecure = state.isSecure
                                     )
                                 }
