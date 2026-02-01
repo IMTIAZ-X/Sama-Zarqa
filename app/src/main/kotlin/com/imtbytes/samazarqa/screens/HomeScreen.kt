@@ -17,7 +17,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
@@ -215,13 +214,6 @@ fun HomeTopBar(
                 }
             }
         },
-        navigationIcon = {
-            if (!isSearching) {
-                IconButton(onClick = { /* Menu */ }) {
-                    Icon(Icons.Rounded.Menu, contentDescription = "Menu")
-                }
-            }
-        }
     )
 }
 
