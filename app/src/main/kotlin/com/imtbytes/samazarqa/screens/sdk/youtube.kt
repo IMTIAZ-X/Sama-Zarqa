@@ -12,12 +12,10 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLDecoder
 import java.util.regex.Pattern
 
-/**
- * SDK এর নিজস্ব Data Model।
- * DownloaderScreen এর সাথে ডাটা আদান-প্রদানের জন্য এটি ব্যবহার হবে।
- */
+// --- Data Models (DownloaderScreen এর সাথে মিল রেখে) ---
 data class MediaInfo(
     val title: String,
     val description: String,
@@ -30,8 +28,15 @@ data class MediaInfo(
 
 object NativeYoutubeSdk {
 
+    private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+    
+    // Regex Patterns for Parsing
+    private val patPlayerResponse = Pattern.compile("var ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\})\\s*;")
+    private val patTitle = Pattern.compile("<title>(.*?)</title>")
+    private val patOgVideo = Pattern.compile("meta property=\"og:video\" content=\"(.*?)\"")
+    
     /**
-     * এই ফাংশনটি URL চেক করে সঠিক মেথড কল করবে।
+     * মেইন এক্সট্রাকশন ফাংশন
      */
     suspend fun extractVideoInfo(urlStr: String): MediaInfo? {
         return withContext(Dispatchers.IO) {
@@ -49,60 +54,75 @@ object NativeYoutubeSdk {
     }
 
     /**
-     * YouTube এর সোর্স কোড থেকে JSON পার্স করে ডাইরেক্ট ভিডিও লিঙ্ক বের করার লজিক।
+     * YouTube Native Parsing Logic
+     * এটি আপনার দেওয়া KotlinYouTubeExtractor এর লজিক অনুসরণ করে তৈরি।
      */
     private fun extractYoutubeNative(urlStr: String): MediaInfo? {
         val html = fetchHtml(urlStr) ?: return null
 
-        // টাইটেল এবং থাম্বনেইল বের করা (Regex ব্যবহার করে)
-        val titleRegex = "\"title\":\"(.*?)\"".toRegex()
-        val thumbRegex = "\"thumbnail\":\\{\"thumbnails\":\\[\\{\"url\":\"(.*?)\"".toRegex()
-        
-        val title = titleRegex.find(html)?.groupValues?.get(1) ?: "YouTube Video"
-        val thumbnail = thumbRegex.find(html)?.groupValues?.get(1) ?: ""
+        // ১. টাইটেল এবং থাম্বনেইল বের করা
+        var title = "YouTube Video"
+        val titleMatcher = patTitle.matcher(html)
+        if (titleMatcher.find()) {
+            title = titleMatcher.group(1)?.replace(" - YouTube", "") ?: "YouTube Video"
+        }
 
-        // ytInitialPlayerResponse ভেরিয়েবল খোঁজা যা ভিডিওর সব ডাটা ধারণ করে
-        val jsonPattern = Pattern.compile("var ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\});")
-        val matcher = jsonPattern.matcher(html)
-
+        // ২. ytInitialPlayerResponse JSON খুঁজে বের করা
+        val matcher = patPlayerResponse.matcher(html)
         var directUrl: String? = null
         var isSignatureProtected = false
+        var thumbnailUrl = ""
 
         if (matcher.find()) {
             try {
                 val jsonString = matcher.group(1)
                 val json = JSONObject(jsonString)
 
-                // streamingData চেক করা
+                // ভিডিও ডিটেইলস থেকে থাম্বনেইল এবং টাইটেল নিশ্চিত করা
+                if (json.has("videoDetails")) {
+                    val details = json.getJSONObject("videoDetails")
+                    if (details.has("title")) title = details.getString("title")
+                    if (details.has("thumbnail")) {
+                        val thumbnails = details.getJSONObject("thumbnail").getJSONArray("thumbnails")
+                        if (thumbnails.length() > 0) {
+                            thumbnailUrl = thumbnails.getJSONObject(thumbnails.length() - 1).getString("url")
+                        }
+                    }
+                }
+
+                // Streaming Data পার্স করা (Formats & AdaptiveFormats)
                 if (json.has("streamingData")) {
                     val streamingData = json.getJSONObject("streamingData")
                     
-                    // Formats (ভিডিও+অডিও) চেক করা
+                    // Priority 1: Formats (Video + Audio combined) - সাধারণত itag 18, 22
                     if (streamingData.has("formats")) {
                         val formats = streamingData.getJSONArray("formats")
                         for (i in 0 until formats.length()) {
                             val format = formats.getJSONObject(i)
-                            
-                            // যদি সরাসরি url থাকে
                             if (format.has("url")) {
-                                directUrl = format.getString("url")
-                                break // প্রথম ভালো কোয়ালিটি পেলেই লুপ ব্রেক
+                                directUrl = format.getString("url").replace("\\u0026", "&")
+                                // mp4 ফরম্যাট অগ্রাধিকার দেওয়া
+                                if (format.has("mimeType") && format.getString("mimeType").contains("mp4")) {
+                                    break 
+                                }
                             } else if (format.has("signatureCipher") || format.has("cipher")) {
-                                // যদি এনক্রিপ্টেড সিগনেচার থাকে
                                 isSignatureProtected = true
                             }
                         }
                     }
-                    
-                    // যদি formats এ না পাওয়া যায়, adaptiveFormats চেক করা (সাধারণত আলাদা অডিও/ভিডিও)
+
+                    // Priority 2: AdaptiveFormats (যদি Formats এ ডাইরেক্ট লিঙ্ক না পাওয়া যায়)
                     if (directUrl == null && streamingData.has("adaptiveFormats")) {
                         val adaptiveFormats = streamingData.getJSONArray("adaptiveFormats")
                         for (i in 0 until adaptiveFormats.length()) {
                             val format = adaptiveFormats.getJSONObject(i)
-                            // mp4 ভিডিও ফরম্যাট খোঁজা
+                            // শুধুমাত্র ভিডিও এবং mp4 খোঁজা হচ্ছে
                             if (format.has("url") && format.has("mimeType") && format.getString("mimeType").contains("video/mp4")) {
-                                directUrl = format.getString("url")
-                                break
+                                directUrl = format.getString("url").replace("\\u0026", "&")
+                                // 720p বা তার নিচে খোঁজা (বেশি হাই কোয়ালিটি অনেক সময় অডিও ছাড়া থাকে)
+                                if (format.has("height") && format.getInt("height") <= 720) {
+                                    break
+                                }
                             }
                         }
                     }
@@ -112,10 +132,14 @@ object NativeYoutubeSdk {
             }
         }
 
+        // HTML Entity Clean up
+        title = title.replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&")
+
+        // রেজাল্ট রিটার্ন
         return MediaInfo(
             title = title,
-            description = if (directUrl != null) "Ready to download (Native)" else "Protected Content / Encrypted",
-            thumbnailUrl = thumbnail,
+            description = if (directUrl != null) "Ready to Download (Direct)" else if(isSignatureProtected) "Encrypted/Protected Video (Requires Decipher)" else "Could not fetch stream",
+            thumbnailUrl = thumbnailUrl,
             downloadUrl = directUrl ?: urlStr,
             platformIcon = Icons.Rounded.PlayArrow,
             isDirectVideo = directUrl != null,
@@ -124,60 +148,52 @@ object NativeYoutubeSdk {
     }
 
     /**
-     * অন্যান্য সাইট (Facebook, Instagram etc) এর জন্য জেনেরিক মেটা ট্যাগ পার্সার।
+     * Generic Social Media Extractor (Facebook, Instagram, etc.)
      */
     private fun extractGenericSocial(urlStr: String): MediaInfo? {
         val html = fetchHtml(urlStr) ?: return null
 
-        val titleRegex = "<title>(.*?)</title>".toRegex()
-        val ogVideoRegex = "meta property=\"og:video\" content=\"(.*?)\"".toRegex()
-        val ogImageRegex = "meta property=\"og:image\" content=\"(.*?)\"".toRegex()
-        val twitterPlayerRegex = "twitter:player:stream\" content=\"(.*?)\"".toRegex()
+        var title = "Social Video"
+        val titleMatcher = patTitle.matcher(html)
+        if (titleMatcher.find()) title = titleMatcher.group(1) ?: "Social Video"
 
-        var title = titleRegex.find(html)?.groupValues?.get(1) ?: "Social Video"
-        val thumbnail = ogImageRegex.find(html)?.groupValues?.get(1) ?: ""
+        val ogVideoMatcher = patOgVideo.matcher(html)
+        var videoUrl = if (ogVideoMatcher.find()) ogVideoMatcher.group(1) else null
         
-        // ডাইরেক্ট ভিডিও লিঙ্ক খোঁজা (OpenGraph অথবা Twitter Card)
-        var videoUrl = ogVideoRegex.find(html)?.groupValues?.get(1)
-        if (videoUrl == null) {
-            videoUrl = twitterPlayerRegex.find(html)?.groupValues?.get(1)
+        // Facebook specific fix
+        if (videoUrl != null) {
+            videoUrl = videoUrl.replace("&amp;", "&")
         }
 
-        // HTML Entity (&amp;) ক্লিন করা
-        videoUrl = videoUrl?.replace("&amp;", "&")
-        title = title.replace("&#39;", "'").replace("&amp;", "&")
+        // Thumbnail extraction
+        val ogImageRegex = "meta property=\"og:image\" content=\"(.*?)\"".toRegex()
+        val thumbnail = ogImageRegex.find(html)?.groupValues?.get(1) ?: ""
 
         return MediaInfo(
             title = title,
-            description = if (videoUrl != null) "Direct video found" else "Webpage detected",
+            description = if (videoUrl != null) "Direct Video Found" else "Webpage Link Only",
             thumbnailUrl = thumbnail,
             downloadUrl = videoUrl ?: urlStr,
-            platformIcon = if (urlStr.contains("facebook")) Icons.Rounded.VideoLibrary else Icons.Rounded.Link,
+            platformIcon = if(urlStr.contains("facebook")) Icons.Rounded.VideoLibrary else Icons.Rounded.Link,
             isDirectVideo = videoUrl != null,
             isEncrypted = false
         )
     }
 
     /**
-     * নেটওয়ার্ক কল হ্যান্ডেলার (HttpURLConnection)
+     * Network Helper utilizing HttpURLConnection
      */
     private fun fetchHtml(urlStr: String): String? {
         return try {
             val url = URL(urlStr)
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            
-            // ব্রাউজারের মতো আচরণ করার জন্য User-Agent সেট করা জরুরি
-            connection.setRequestProperty(
-                "User-Agent", 
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            )
-            connection.connectTimeout = 15000 // 15 seconds
+            connection.setRequestProperty("User-Agent", USER_AGENT)
+            connection.connectTimeout = 15000
             connection.readTimeout = 15000
             connection.connect()
 
-            val inputStream = connection.inputStream
-            val reader = BufferedReader(InputStreamReader(inputStream))
+            val reader = BufferedReader(InputStreamReader(connection.inputStream))
             val sb = StringBuilder()
             var line: String?
             while (reader.readLine().also { line = it } != null) {
