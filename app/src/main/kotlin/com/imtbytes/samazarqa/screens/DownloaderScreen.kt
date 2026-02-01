@@ -50,6 +50,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.regex.Pattern
+import com.imtbytes.samazarqa.screens.sdk.NativeYoutubeSdk
 
 // --- Data Models ---
 data class MediaInfo(
@@ -349,6 +350,29 @@ fun InputSection(
                     Text("Analyze & Download", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
+            // DownloaderScreen এর ভেতরে onAnalyzeClick এর লজিক:
+onAnalyzeClick = {
+    if (urlText.isNotEmpty()) {
+        isAnalyzing = true
+        scope.launch {
+            // ১. Native SDK কল করা হচ্ছে
+            val info = NativeYoutubeSdk.extractVideoInfo(urlText)
+            isAnalyzing = false
+            
+            if (info != null) {
+                currentMediaInfo = info
+                showBottomSheet = true
+                
+                // ওয়ার্নিং টোস্ট যদি ভিডিও এনক্রিপ্টেড হয়
+                if (info.isEncrypted) {
+                    Toast.makeText(context, "Protected Video: Cannot download directly via Native code", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                Toast.makeText(context, "Failed to analyze link", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}
         }
     }
 }
