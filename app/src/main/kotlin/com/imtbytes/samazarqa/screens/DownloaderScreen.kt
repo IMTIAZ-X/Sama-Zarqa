@@ -1,12 +1,18 @@
 package com.imtbytes.samazarqa.screens
 
+import android.Manifest
+import android.app.Activity
 import android.app.DownloadManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -34,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.imtbytes.samazarqa.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,14 +49,16 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.regex.Pattern
 
 // --- Data Models ---
 data class MediaInfo(
     val title: String,
     val description: String,
     val thumbnailUrl: String,
-    val downloadUrl: String, // আসল ভিডিও লিঙ্ক
-    val platformIcon: ImageVector
+    val downloadUrl: String, // আসল ভিডিও লিঙ্ক (Extract করা)
+    val platformIcon: ImageVector,
+    val isDirectVideo: Boolean = false
 )
 
 data class QualityOption(val label: String, val size: String, val isAudio: Boolean = false)
@@ -60,13 +69,37 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
     var urlText by remember { mutableStateOf("") }
     var showBottomSheet by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
-    
-    // ডাউনলোড এবং ভিডিও তথ্যের জন্য স্টেট
     var currentMediaInfo by remember { mutableStateOf<MediaInfo?>(null) }
     
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // --- ১. অ্যাপ ওপেন হলেই পারমিশন চেক ---
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.entries.all { it.value }
+        if (granted) {
+            Toast.makeText(context, "Storage Permission Granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Permission Denied! Download won't work.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) 
+                != PackageManager.PERMISSION_GRANTED) {
+                permissionLauncher.launch(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) 
+                != PackageManager.PERMISSION_GRANTED) {
+                permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+            }
+        }
+    }
 
     // Main Layout
     Scaffold(
@@ -79,9 +112,8 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
                 .padding(innerPadding)
                 .padding(20.dp)
         ) {
-            // Header
             Text(
-                text = "Secure Downloader",
+                text = "Sama Zarqa Downloader",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -98,15 +130,15 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
                     if (urlText.isNotEmpty()) {
                         isAnalyzing = true
                         scope.launch {
-                            // ১. লিঙ্ক এনালাইজ করা হচ্ছে (Native HTML Parsing)
-                            val info = analyzeLinkNatively(urlText)
-                            
+                            // লিঙ্ক এনালাইজ এবং আসল ভিডিও লিঙ্ক বের করার চেষ্টা
+                            val info = extractVideoInfo(urlText)
                             isAnalyzing = false
+                            
                             if (info != null) {
                                 currentMediaInfo = info
                                 showBottomSheet = true
                             } else {
-                                Toast.makeText(context, "Could not fetch info. Try a direct link.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Could not fetch video info. Try another link.", Toast.LENGTH_LONG).show()
                             }
                         }
                     } else {
@@ -119,7 +151,7 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
 
             // History Header
             Text(
-                text = "Recent Downloads",
+                text = "Downloads History",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -127,16 +159,16 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Downloads List (Static Demo)
+            // Downloads List
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 16.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                items(3) { index ->
+                items(2) { index ->
                     DownloadItem(
-                        fileName = "Sama_Video_${index + 1}.mp4",
-                        size = "${(index + 2) * 5} MB",
+                        fileName = "Sama_Video_Demo_${index + 1}.mp4",
+                        size = "15 MB",
                         isCompleted = true
                     )
                 }
@@ -155,8 +187,8 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
                     mediaInfo = currentMediaInfo!!,
                     onDownloadStart = { fileName ->
                         showBottomSheet = false
-                        // ২. আসল ডাউনলোড শুরু করা
-                        startNativeDownload(context, currentMediaInfo!!.downloadUrl, fileName)
+                        // ডাউনলোড শুরু
+                        startSmartDownload(context, currentMediaInfo!!.downloadUrl, fileName)
                     }
                 )
             }
@@ -164,18 +196,17 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
     }
 }
 
-// --- Native Logic: Link Analyzer (No Library) ---
-suspend fun analyzeLinkNatively(urlStr: String): MediaInfo? {
+// --- ২. Native Video Extractor (HTML থেকে MP4 খোঁজা) ---
+suspend fun extractVideoInfo(urlStr: String): MediaInfo? {
     return withContext(Dispatchers.IO) {
         try {
             val url = URL(urlStr)
             val connection = url.openConnection() as HttpURLConnection
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0") // ব্রাউজার হিসেবে ভান করা
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
             connection.connect()
 
-            // HTML পড়া
             val inputStream = connection.inputStream
             val reader = BufferedReader(InputStreamReader(inputStream))
             val sb = StringBuilder()
@@ -185,23 +216,35 @@ suspend fun analyzeLinkNatively(urlStr: String): MediaInfo? {
             }
             val html = sb.toString()
 
-            // ৩. Regex দিয়ে টাইটেল এবং ছবি বের করা (Native Parsing)
+            // মেটাডাটা বের করা
             val titleRegex = "<title>(.*?)</title>".toRegex()
             val ogImageRegex = "meta property=\"og:image\" content=\"(.*?)\"".toRegex()
-            
-            val title = titleRegex.find(html)?.groupValues?.get(1) ?: "Unknown Video"
-            val thumbnail = ogImageRegex.find(html)?.groupValues?.get(1) ?: ""
+            val ogVideoRegex = "meta property=\"og:video\" content=\"(.*?)\"".toRegex() // ফেসবুকের জন্য
+            val twitterPlayerRegex = "twitter:player:stream\" content=\"(.*?)\"".toRegex()
 
-            // *গুরুত্বপূর্ণ*: ইউটিউব/ফেসবুক থেকে সরাসরি ভিডিও লিঙ্ক বের করা লাইব্রেরি ছাড়া খুবই কঠিন।
-            // তাই আমরা ডাউনলোড লিঙ্ক হিসেবে আসল ইউজার ইনপুটটাই রাখছি, অথবা একটি ডামি ডিরেক্ট লিঙ্ক দিচ্ছি।
-            // বাস্তব অ্যাপে এখানে একটি API call লাগে।
+            var title = titleRegex.find(html)?.groupValues?.get(1) ?: "Sama Video Download"
+            val thumbnail = ogImageRegex.find(html)?.groupValues?.get(1) ?: ""
             
+            // আসল ভিডিও লিঙ্ক খোঁজা (সবচেয়ে গুরুত্বপূর্ণ পার্ট)
+            var videoUrl = ogVideoRegex.find(html)?.groupValues?.get(1)
+            if (videoUrl == null) {
+                videoUrl = twitterPlayerRegex.find(html)?.groupValues?.get(1)
+            }
+            
+            // যদি ভিডিও লিঙ্ক না পাওয়া যায়, তবুও আমরা ইউজারকে অপশন দিব (কিন্তু ওয়ার্নিং সহ)
+            val finalDownloadUrl = videoUrl?.replace("&amp;", "&") ?: urlStr
+            val isDirect = videoUrl != null
+
+            // টাইটেল ক্লিন করা
+            title = title.replace("&#39;", "'").replace("&amp;", "&").take(50)
+
             MediaInfo(
-                title = title.replace("&#39;", "'").replace("&amp;", "&"),
-                description = "Ready to download from source.",
+                title = title,
+                description = if(isDirect) "Video found! Ready to download." else "Webpage detected. Real video might not download.",
                 thumbnailUrl = thumbnail,
-                downloadUrl = urlStr, // এই লিঙ্কটি ডাউনলোডারকে পাঠানো হবে
-                platformIcon = if(urlStr.contains("youtube")) Icons.Rounded.PlayArrow else Icons.Rounded.Link
+                downloadUrl = finalDownloadUrl,
+                platformIcon = if(urlStr.contains("youtube")) Icons.Rounded.PlayArrow else Icons.Rounded.Link,
+                isDirectVideo = isDirect
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -210,33 +253,39 @@ suspend fun analyzeLinkNatively(urlStr: String): MediaInfo? {
     }
 }
 
-// --- Native Logic: Download Manager (Real Download) ---
-fun startNativeDownload(context: Context, url: String, title: String) {
+// --- ৩. Download Manager Logic (Correct Path) ---
+fun startSmartDownload(context: Context, url: String, title: String) {
+    // চেক: যদি লিঙ্ক ইউটিউবের হয় এবং ডাইরেক্ট লিঙ্ক না হয়
+    if (url.contains("youtube.com") || url.contains("youtu.be")) {
+         Toast.makeText(context, "Note: YouTube encrypts videos. This might download a small file only.", Toast.LENGTH_LONG).show()
+    }
+
     try {
         val request = DownloadManager.Request(Uri.parse(url))
         
-        // ফাইলের নাম ক্লিন করা
-        val safeFileName = title.replace("[^a-zA-Z0-9.-]".toRegex(), "_") + ".mp4"
+        val safeFileName = "SamaZarqa_" + title.replace("[^a-zA-Z0-9.-]".toRegex(), "_") + ".mp4"
         
         request.setTitle(title)
-        request.setDescription("Downloading video...")
+        request.setDescription("Downloading via Sama Zarqa...")
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
         
-        // ৪. পাথ সেট করা: /Download/SamaZarqa/
+        // --- Path Fix: /Download/SamaZarqa/ ---
+        // Android 11+ এ সরাসরি রুটে (Storage/0/SamaZarqa) ফোল্ডার করা যায় না।
+        // তাই স্ট্যান্ডার্ড Download ফোল্ডারের ভেতরে সাব-ফোল্ডার করা হচ্ছে।
         request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "SamaZarqa/$safeFileName")
+        
         request.setAllowedOverMetered(true)
         request.setAllowedOverRoaming(true)
 
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         downloadManager.enqueue(request)
 
-        Toast.makeText(context, "Download Started! Check Notification.", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Downloading to: Downloads/SamaZarqa", Toast.LENGTH_LONG).show()
         
     } catch (e: Exception) {
-        Toast.makeText(context, "Error: ${e.localizedMessage}. Note: YouTube encryption prevents direct downloads without API.", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Download Error: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }
-
 
 // --- Composable: Input Section ---
 @Composable
@@ -256,7 +305,7 @@ fun InputSection(
             OutlinedTextField(
                 value = urlText,
                 onValueChange = onUrlChange,
-                placeholder = { Text("Paste Link (e.g. Facebook, Direct MP4)", fontSize = 14.sp) },
+                placeholder = { Text("Paste Link Here...", fontSize = 14.sp) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
@@ -293,11 +342,11 @@ fun InputSection(
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Analyzing...")
+                    Text("Searching Video...")
                 } else {
                     Icon(Icons.Rounded.Search, null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Analyze Link", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Analyze & Download", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -312,11 +361,17 @@ fun DownloadOptionsSheetContent(
 ) {
     var selectedQuality by remember { mutableStateOf(0) }
     
-    // ডামি কোয়ালিটি অপশন (বাস্তবে ভিডিও সাইজ চেক করা কঠিন লাইব্রেরি ছাড়া)
-    val qualities = listOf(
-        QualityOption("Best Quality", "Unknown Size"),
-        QualityOption("Data Saver", "Low Size"),
-    )
+    // ডাইনামিক অপশন দেখানো
+    val qualities = if(mediaInfo.isDirectVideo) {
+        listOf(
+            QualityOption("HD Video", "Unknown Size"),
+            QualityOption("SD Video", "Low Data")
+        )
+    } else {
+        listOf(
+            QualityOption("Source File", "Unknown"),
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -367,13 +422,22 @@ fun DownloadOptionsSheetContent(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = mediaInfo.description,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                
+                // ইউজারকে সতর্ক করা হচ্ছে
+                if (!mediaInfo.isDirectVideo && (mediaInfo.downloadUrl.contains("youtube") || mediaInfo.downloadUrl.contains("youtu"))) {
+                    Text(
+                        text = "⚠️ YouTube links are encrypted. Might fail without API.",
+                        fontSize = 11.sp,
+                        color = Color.Red,
+                        maxLines = 2
+                    )
+                } else {
+                    Text(
+                        text = mediaInfo.description,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -389,10 +453,7 @@ fun DownloadOptionsSheetContent(
         
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Quality Chips
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(qualities.size) { index ->
                 val option = qualities[index]
                 val isSelected = selectedQuality == index
@@ -400,15 +461,9 @@ fun DownloadOptionsSheetContent(
                 FilterChip(
                     selected = isSelected,
                     onClick = { selectedQuality = index },
-                    label = { 
-                        Text(text = "${option.label} • ${option.size}") 
-                    },
+                    label = { Text(text = "${option.label}") },
                     leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Videocam,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Icon(Icons.Rounded.Videocam, null, modifier = Modifier.size(18.dp))
                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PrimaryBlue.copy(alpha = 0.1f),
@@ -421,12 +476,9 @@ fun DownloadOptionsSheetContent(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Final Download Action
         Button(
             onClick = { onDownloadStart(mediaInfo.title) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
         ) {
@@ -439,36 +491,20 @@ fun DownloadOptionsSheetContent(
 
 // --- Helper: Native Network Image Loader ---
 @Composable
-fun NativeNetworkImage(
-    url: String,
-    contentDescription: String?,
-    modifier: Modifier = Modifier
-) {
+fun NativeNetworkImage(url: String, contentDescription: String?, modifier: Modifier = Modifier) {
     var bitmap by remember(url) { mutableStateOf<Bitmap?>(null) }
-
     LaunchedEffect(url) {
         withContext(Dispatchers.IO) {
             try {
                 val inputStream = URL(url).openStream()
                 bitmap = BitmapFactory.decodeStream(inputStream)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
-
     if (bitmap != null) {
-        Image(
-            bitmap = bitmap!!.asImageBitmap(),
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = modifier
-        )
+        Image(bitmap = bitmap!!.asImageBitmap(), contentDescription = contentDescription, contentScale = ContentScale.Crop, modifier = modifier)
     } else {
-        Box(
-            modifier = modifier.background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = modifier.background(Color.LightGray), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp))
         }
     }
@@ -486,10 +522,7 @@ fun DownloadItem(fileName: String, size: String, isCompleted: Boolean) {
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier.size(50.dp).clip(CircleShape).background(if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFE3F2FD)),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.size(50.dp).clip(CircleShape).background(if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFE3F2FD)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(24.dp))
             }
             Spacer(modifier = Modifier.width(16.dp))
