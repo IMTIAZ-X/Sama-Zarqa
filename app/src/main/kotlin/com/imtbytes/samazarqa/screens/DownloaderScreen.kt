@@ -2,9 +2,9 @@ package com.imtbytes.samazarqa.screens
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.BorderStroke // Import added
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,7 +23,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,7 +37,7 @@ import java.net.URL
 data class MediaInfo(
     val title: String,
     val description: String,
-    val thumbnailUrl: String, // For native loading
+    val thumbnailUrl: String,
     val platformIcon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
@@ -87,7 +86,7 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
                 onAnalyzeClick = {
                     if (urlText.isNotEmpty()) {
                         isAnalyzing = true
-                        // Simulate Network Analysis (Mocking Native Behavior)
+                        // Simulate Network Analysis
                         scope.launch {
                             kotlinx.coroutines.delay(1500) // Fake loading
                             currentMediaInfo = MediaInfo(
@@ -158,7 +157,7 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
     }
 }
 
-// --- Composable: Input Section ---
+// --- Composable: Input Section (FIXED HERE) ---
 @Composable
 fun InputSection(
     urlText: String,
@@ -169,7 +168,8 @@ fun InputSection(
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        border = androidx.compose.foundation.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.3f), RoundedCornerShape(24.dp)),
+        // ফিক্স: এখানে BorderStroke ব্যবহার করা হয়েছে
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.3f)), 
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -371,7 +371,6 @@ fun NativeNetworkImage(
                 bitmap = BitmapFactory.decodeStream(inputStream)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Handle error or set fallback
             }
         }
     }
@@ -398,7 +397,6 @@ fun NativeNetworkImage(
     }
 }
 
-// --- Existing DownloadItem with Minor Polish ---
 @Composable
 fun DownloadItem(
     fileName: String,
@@ -408,7 +406,7 @@ fun DownloadItem(
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp, // Slight elevation for depth
+        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
