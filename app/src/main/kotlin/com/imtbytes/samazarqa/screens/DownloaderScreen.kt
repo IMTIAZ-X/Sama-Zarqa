@@ -1,8 +1,13 @@
 package com.imtbytes.samazarqa.screens
 
+import android.app.DownloadManager
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.compose.foundation.BorderStroke // Import added
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,7 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,6 +38,9 @@ import com.imtbytes.samazarqa.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
 import java.net.URL
 
 // --- Data Models ---
@@ -38,7 +48,8 @@ data class MediaInfo(
     val title: String,
     val description: String,
     val thumbnailUrl: String,
-    val platformIcon: androidx.compose.ui.graphics.vector.ImageVector
+    val downloadUrl: String, // আসল ভিডিও লিঙ্ক
+    val platformIcon: ImageVector
 )
 
 data class QualityOption(val label: String, val size: String, val isAudio: Boolean = false)
@@ -50,9 +61,11 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
     var showBottomSheet by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
     
-    // Mock Data Holder for the Sheet
+    // ডাউনলোড এবং ভিডিও তথ্যের জন্য স্টেট
     var currentMediaInfo by remember { mutableStateOf<MediaInfo?>(null) }
+    
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Main Layout
@@ -67,14 +80,12 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
                 .padding(20.dp)
         ) {
             // Header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Secure Downloader",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            Text(
+                text = "Secure Downloader",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
             
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -86,18 +97,20 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
                 onAnalyzeClick = {
                     if (urlText.isNotEmpty()) {
                         isAnalyzing = true
-                        // Simulate Network Analysis
                         scope.launch {
-                            kotlinx.coroutines.delay(1500) // Fake loading
-                            currentMediaInfo = MediaInfo(
-                                title = "Amazing Nature 4K - Relaxing Music",
-                                description = "Enjoy the beautiful scenery of nature with calming music. Best for relaxation and study.",
-                                thumbnailUrl = "https://picsum.photos/600/350", // Random image for demo
-                                platformIcon = Icons.Rounded.PlayCircle
-                            )
+                            // ১. লিঙ্ক এনালাইজ করা হচ্ছে (Native HTML Parsing)
+                            val info = analyzeLinkNatively(urlText)
+                            
                             isAnalyzing = false
-                            showBottomSheet = true
+                            if (info != null) {
+                                currentMediaInfo = info
+                                showBottomSheet = true
+                            } else {
+                                Toast.makeText(context, "Could not fetch info. Try a direct link.", Toast.LENGTH_SHORT).show()
+                            }
                         }
+                    } else {
+                        Toast.makeText(context, "Please paste a link first", Toast.LENGTH_SHORT).show()
                     }
                 }
             )
@@ -105,23 +118,16 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
             Spacer(modifier = Modifier.height(32.dp))
 
             // History Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Recent Activity",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                TextButton(onClick = { /* Clear All logic */ }) {
-                    Text("Clear All", color = PrimaryBlue)
-                }
-            }
+            Text(
+                text = "Recent Downloads",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Downloads List
+            // Downloads List (Static Demo)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 16.dp),
@@ -129,9 +135,9 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
             ) {
                 items(3) { index ->
                     DownloadItem(
-                        fileName = "Social_Media_Clip_${index + 1}.mp4",
+                        fileName = "Sama_Video_${index + 1}.mp4",
                         size = "${(index + 2) * 5} MB",
-                        isCompleted = index != 0
+                        isCompleted = true
                     )
                 }
             }
@@ -147,9 +153,10 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
             ) {
                 DownloadOptionsSheetContent(
                     mediaInfo = currentMediaInfo!!,
-                    onDownloadStart = {
+                    onDownloadStart = { fileName ->
                         showBottomSheet = false
-                        // Handle download logic here
+                        // ২. আসল ডাউনলোড শুরু করা
+                        startNativeDownload(context, currentMediaInfo!!.downloadUrl, fileName)
                     }
                 )
             }
@@ -157,7 +164,81 @@ fun DownloaderScreen(isDarkTheme: Boolean) {
     }
 }
 
-// --- Composable: Input Section (FIXED HERE) ---
+// --- Native Logic: Link Analyzer (No Library) ---
+suspend fun analyzeLinkNatively(urlStr: String): MediaInfo? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(urlStr)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0") // ব্রাউজার হিসেবে ভান করা
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            connection.connect()
+
+            // HTML পড়া
+            val inputStream = connection.inputStream
+            val reader = BufferedReader(InputStreamReader(inputStream))
+            val sb = StringBuilder()
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                sb.append(line)
+            }
+            val html = sb.toString()
+
+            // ৩. Regex দিয়ে টাইটেল এবং ছবি বের করা (Native Parsing)
+            val titleRegex = "<title>(.*?)</title>".toRegex()
+            val ogImageRegex = "meta property=\"og:image\" content=\"(.*?)\"".toRegex()
+            
+            val title = titleRegex.find(html)?.groupValues?.get(1) ?: "Unknown Video"
+            val thumbnail = ogImageRegex.find(html)?.groupValues?.get(1) ?: ""
+
+            // *গুরুত্বপূর্ণ*: ইউটিউব/ফেসবুক থেকে সরাসরি ভিডিও লিঙ্ক বের করা লাইব্রেরি ছাড়া খুবই কঠিন।
+            // তাই আমরা ডাউনলোড লিঙ্ক হিসেবে আসল ইউজার ইনপুটটাই রাখছি, অথবা একটি ডামি ডিরেক্ট লিঙ্ক দিচ্ছি।
+            // বাস্তব অ্যাপে এখানে একটি API call লাগে।
+            
+            MediaInfo(
+                title = title.replace("&#39;", "'").replace("&amp;", "&"),
+                description = "Ready to download from source.",
+                thumbnailUrl = thumbnail,
+                downloadUrl = urlStr, // এই লিঙ্কটি ডাউনলোডারকে পাঠানো হবে
+                platformIcon = if(urlStr.contains("youtube")) Icons.Rounded.PlayArrow else Icons.Rounded.Link
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+}
+
+// --- Native Logic: Download Manager (Real Download) ---
+fun startNativeDownload(context: Context, url: String, title: String) {
+    try {
+        val request = DownloadManager.Request(Uri.parse(url))
+        
+        // ফাইলের নাম ক্লিন করা
+        val safeFileName = title.replace("[^a-zA-Z0-9.-]".toRegex(), "_") + ".mp4"
+        
+        request.setTitle(title)
+        request.setDescription("Downloading video...")
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+        
+        // ৪. পাথ সেট করা: /Download/SamaZarqa/
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "SamaZarqa/$safeFileName")
+        request.setAllowedOverMetered(true)
+        request.setAllowedOverRoaming(true)
+
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+
+        Toast.makeText(context, "Download Started! Check Notification.", Toast.LENGTH_LONG).show()
+        
+    } catch (e: Exception) {
+        Toast.makeText(context, "Error: ${e.localizedMessage}. Note: YouTube encryption prevents direct downloads without API.", Toast.LENGTH_LONG).show()
+    }
+}
+
+
+// --- Composable: Input Section ---
 @Composable
 fun InputSection(
     urlText: String,
@@ -168,7 +249,6 @@ fun InputSection(
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        // ফিক্স: এখানে BorderStroke ব্যবহার করা হয়েছে
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.3f)), 
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -176,7 +256,7 @@ fun InputSection(
             OutlinedTextField(
                 value = urlText,
                 onValueChange = onUrlChange,
-                placeholder = { Text("Paste YouTube, TikTok link here...", fontSize = 14.sp) },
+                placeholder = { Text("Paste Link (e.g. Facebook, Direct MP4)", fontSize = 14.sp) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
@@ -213,11 +293,11 @@ fun InputSection(
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Analyzing Link...")
+                    Text("Analyzing...")
                 } else {
-                    Icon(Icons.Rounded.Download, null)
+                    Icon(Icons.Rounded.Search, null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Analyze & Download", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Analyze Link", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -228,14 +308,14 @@ fun InputSection(
 @Composable
 fun DownloadOptionsSheetContent(
     mediaInfo: MediaInfo,
-    onDownloadStart: () -> Unit
+    onDownloadStart: (String) -> Unit
 ) {
     var selectedQuality by remember { mutableStateOf(0) }
+    
+    // ডামি কোয়ালিটি অপশন (বাস্তবে ভিডিও সাইজ চেক করা কঠিন লাইব্রেরি ছাড়া)
     val qualities = listOf(
-        QualityOption("1080p", "45 MB"),
-        QualityOption("720p", "22 MB"),
-        QualityOption("480p", "12 MB"),
-        QualityOption("MP3 Audio", "4.5 MB", true)
+        QualityOption("Best Quality", "Unknown Size"),
+        QualityOption("Data Saver", "Low Size"),
     )
 
     Column(
@@ -259,18 +339,21 @@ fun DownloadOptionsSheetContent(
 
         // Thumbnail & Info
         Row(modifier = Modifier.fillMaxWidth()) {
-            // Native Image Loader (No Library)
             Card(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .width(120.dp)
                     .height(80.dp)
             ) {
-                NativeNetworkImage(
-                    url = mediaInfo.thumbnailUrl,
-                    contentDescription = "Thumbnail",
-                    modifier = Modifier.fillMaxSize()
-                )
+                if(mediaInfo.thumbnailUrl.isNotEmpty()){
+                    NativeNetworkImage(
+                        url = mediaInfo.thumbnailUrl,
+                        contentDescription = "Thumbnail",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(Color.Gray))
+                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -322,7 +405,7 @@ fun DownloadOptionsSheetContent(
                     },
                     leadingIcon = {
                         Icon(
-                            imageVector = if(option.isAudio) Icons.Rounded.Audiotrack else Icons.Rounded.Videocam,
+                            imageVector = Icons.Rounded.Videocam,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -340,7 +423,7 @@ fun DownloadOptionsSheetContent(
 
         // Final Download Action
         Button(
-            onClick = onDownloadStart,
+            onClick = { onDownloadStart(mediaInfo.title) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -354,7 +437,7 @@ fun DownloadOptionsSheetContent(
     }
 }
 
-// --- Helper: Native Network Image Loader (NO 3rd Party Library) ---
+// --- Helper: Native Network Image Loader ---
 @Composable
 fun NativeNetworkImage(
     url: String,
@@ -363,7 +446,6 @@ fun NativeNetworkImage(
 ) {
     var bitmap by remember(url) { mutableStateOf<Bitmap?>(null) }
 
-    // Fetch image in background thread natively
     LaunchedEffect(url) {
         withContext(Dispatchers.IO) {
             try {
@@ -383,26 +465,17 @@ fun NativeNetworkImage(
             modifier = modifier
         )
     } else {
-        // Loading / Placeholder State
         Box(
             modifier = modifier.background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp,
-                color = Color.Gray
-            )
+            CircularProgressIndicator(modifier = Modifier.size(20.dp))
         }
     }
 }
 
 @Composable
-fun DownloadItem(
-    fileName: String,
-    size: String,
-    isCompleted: Boolean
-) {
+fun DownloadItem(fileName: String, size: String, isCompleted: Boolean) {
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -410,71 +483,19 @@ fun DownloadItem(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFE3F2FD)
-                    ),
+                modifier = Modifier.size(50.dp).clip(CircleShape).background(if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFE3F2FD)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if(isCompleted) Icons.Rounded.CheckCircle else Icons.Rounded.Downloading,
-                    contentDescription = null,
-                    tint = if(isCompleted) Color(0xFF4CAF50) else PrimaryBlue,
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(Icons.Rounded.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(24.dp))
             }
-            
             Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = fileName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = if(isCompleted) "Completed" else "Downloading...",
-                        fontSize = 12.sp,
-                        color = if(isCompleted) Color(0xFF4CAF50) else PrimaryBlue,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = " • $size",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
-            }
-            
-            if(!isCompleted) {
-                CircularProgressIndicator(
-                    progress = { 0.45f },
-                    modifier = Modifier.size(28.dp),
-                    color = PrimaryBlue,
-                    trackColor = PrimaryBlue.copy(alpha = 0.2f),
-                    strokeWidth = 3.dp,
-                )
-            } else {
-                IconButton(onClick = { /* Open file */ }) {
-                    Icon(
-                        Icons.Rounded.FolderOpen, 
-                        contentDescription = "Open",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    )
-                }
+            Column {
+                Text(fileName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Completed • $size", fontSize = 12.sp, color = Color.Gray)
             }
         }
     }
