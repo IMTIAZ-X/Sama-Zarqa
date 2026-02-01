@@ -1,6 +1,7 @@
 package com.imtbytes.samazarqa.screens
 
-import androidx.compose.animation.AnimatedContent
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -11,19 +12,27 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.imtbytes.samazarqa.ui.theme.*
@@ -51,9 +60,7 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // State for selected Navigation Item
     var selectedItem by remember { mutableStateOf(NavItem.Home) }
-    
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -70,102 +77,44 @@ fun HomeScreen(
         },
         containerColor = if (isDarkTheme) Color(0xFF0D0D0D) else Color(0xFFF8F9FA),
         topBar = {
-    // HomeScreen AppBar 
-    if (selectedItem == NavItem.Home) {
-        CenterAlignedTopAppBar(
-            title = {
-                AnimatedContent(
-                    targetState = isSearching,
-                    label = "SearchAnimation"
-                ) { searching ->
-                    if (searching) {
-                      
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Search protection...") },
-                            modifier = Modifier.fillMaxWidth(0.9f).height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
-                        )
-                    } else {
-                     
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("SAMAZARQA", fontSize = 12.sp, color = PrimaryBlue)
-                            Text("Security Hub", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            },
-            actions = {
-                
-                IconButton(onClick = { 
-                 if (isSearching) {
-                   searchQuery = "" // সার্চ টেক্সট ক্লিয়ার হবে
-                  }
-                    isSearching = !isSearching 
-                    }) {
-                      Icon(
-                        imageVector = if (isSearching) Icons.Default.Close else Icons.Default.Search,
-                           contentDescription = "Search",
-                            tint = PrimaryBlue
-                            )
-                      }
-            },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
-        )
-    }
-}
+            if (selectedItem == NavItem.Home) {
+                HomeTopBar(
+                    isSearching = isSearching,
+                    onSearchToggle = { isSearching = !isSearching },
+                    searchQuery = searchQuery,
+                    onQueryChange = { searchQuery = it }
+                )
+            }
+        }
     ) { padding ->
-        // Main Row Layout: Content on Left, NavigationRail on Right
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 1. Content Area (Takes remaining space)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                // Smooth transition between screens
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 AnimatedContent(
                     targetState = selectedItem,
                     label = "ScreenTransition"
                 ) { targetScreen ->
                     when (targetScreen) {
-                        NavItem.Home -> {
-                            HomeContent(
-                                isDarkTheme = isDarkTheme,
-                                isSecure = isSecure,
-                                snackbarHostState = snackbarHostState,
-                                scope = scope
-                            )
-                        }
-                        // Integration of Real Screens
+                        NavItem.Home -> HomeContent(isDarkTheme, isSecure, snackbarHostState, scope)
                         NavItem.QR -> ScannerScreen(isDarkTheme)
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
-                        NavItem.Settings -> SettingScreen(
-                     		 currentTheme = currentTheme,
-         				     onThemeChanged = onThemeChanged
-        				 )
+                        NavItem.Settings -> SettingScreen(currentTheme, onThemeChanged)
                     }
                 }
             }
 
-            // 2. Navigation Rail (Right Side)
             NavigationRail(
                 modifier = Modifier
                     .fillMaxHeight()
                     .padding(vertical = 16.dp, horizontal = 8.dp)
                     .clip(RoundedCornerShape(24.dp)),
                 containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White,
-                contentColor = PrimaryBlue,
-                header = null
+                contentColor = PrimaryBlue
             ) {
-                // Centering the items vertically
                 Column(
                     modifier = Modifier.fillMaxHeight(),
                     verticalArrangement = Arrangement.Center
@@ -173,23 +122,9 @@ fun HomeScreen(
                     NavItem.entries.forEach { item ->
                         NavigationRailItem(
                             selected = selectedItem == item,
-                            onClick = {
-                                selectedItem = item
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = item.label,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            },
+                            onClick = { selectedItem = item },
+                            icon = { Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(24.dp)) },
+                            label = { Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Medium) },
                             colors = NavigationRailItemDefaults.colors(
                                 selectedIconColor = Color.White,
                                 selectedTextColor = PrimaryBlue,
@@ -204,6 +139,118 @@ fun HomeScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeTopBar(
+    isSearching: Boolean,
+    onSearchToggle: () -> Unit,
+    searchQuery: String,
+    onQueryChange: (String) -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isSearching) {
+        if (isSearching) {
+            focusRequester.requestFocus()
+        }
+    }
+
+    BackHandler(enabled = isSearching) {
+        onSearchToggle()
+    }
+
+    CenterAlignedTopAppBar(
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = Color.Transparent,
+            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+        ),
+        title = {
+            AnimatedContent(
+                targetState = isSearching,
+                transitionSpec = {
+                    if (targetState) {
+                        (slideInHorizontally { it } + fadeIn()).togetherWith(fadeOut())
+                    } else {
+                        fadeIn().togetherWith(slideOutHorizontally { it } + fadeOut())
+                    }
+                },
+                label = "SearchTransition"
+            ) { searching ->
+                if (searching) {
+                    SearchBarInput(
+                        query = searchQuery,
+                        onQueryChange = onQueryChange,
+                        focusRequester = focusRequester
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("SAMAZARQA", style = MaterialTheme.typography.labelSmall, color = PrimaryBlue, letterSpacing = 2.sp)
+                        Text("Security Hub", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        },
+        actions = {
+            IconButton(
+                onClick = {
+                    if (isSearching && searchQuery.isNotEmpty()) {
+                        onQueryChange("")
+                    } else {
+                        onSearchToggle()
+                    }
+                },
+                modifier = Modifier.background(
+                    color = if (isSearching) PrimaryBlue.copy(alpha = 0.1f) else Color.Transparent,
+                    shape = CircleShape
+                )
+            ) {
+                Crossfade(targetState = isSearching, label = "IconFade") { searching ->
+                    Icon(
+                        imageVector = if (searching) Icons.Rounded.Close else Icons.Rounded.Search,
+                        contentDescription = "Search",
+                        tint = PrimaryBlue
+                    )
+                }
+            }
+        },
+        navigationIcon = {
+            if (!isSearching) {
+                IconButton(onClick = { /* Menu */ }) {
+                    Icon(Icons.Rounded.Menu, contentDescription = "Menu")
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun SearchBarInput(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    focusRequester: FocusRequester
+) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text("Search protection...") },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .focusRequester(focusRequester),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { /* Action */ }),
+        shape = RoundedCornerShape(24.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            cursorColor = PrimaryBlue
+        )
+    )
 }
 
 /**
