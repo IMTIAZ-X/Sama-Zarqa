@@ -57,11 +57,11 @@ data class MediaInfo(
     val title: String,
     val description: String,
     val thumbnailUrl: String,
-    val downloadUrl: String, // আসল ভিডিও লিঙ্ক (Extract করা)
+    val downloadUrl: String,
     val platformIcon: ImageVector,
-    val isDirectVideo: Boolean = false
+    val isDirectVideo: Boolean = false,
+    val isEncrypted: Boolean = false // এই লাইনটি যোগ করুন
 )
-
 data class QualityOption(val label: String, val size: String, val isAudio: Boolean = false)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -324,7 +324,7 @@ fun InputSection(
             Spacer(modifier = Modifier.height(16.dp))
             
             Button(
-                onClick = onAnalyzeClick,
+                onClick = onAnalyzeClick, // এখানে শুধু প্যারামিটারটি কল হবে
                 enabled = !isAnalyzing && urlText.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -350,29 +350,6 @@ fun InputSection(
                     Text("Analyze & Download", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            // DownloaderScreen এর ভেতরে onAnalyzeClick এর লজিক:
-onAnalyzeClick = {
-    if (urlText.isNotEmpty()) {
-        isAnalyzing = true
-        scope.launch {
-            // ১. Native SDK কল করা হচ্ছে
-            val info = NativeYoutubeSdk.extractVideoInfo(urlText)
-            isAnalyzing = false
-            
-            if (info != null) {
-                currentMediaInfo = info
-                showBottomSheet = true
-                
-                // ওয়ার্নিং টোস্ট যদি ভিডিও এনক্রিপ্টেড হয়
-                if (info.isEncrypted) {
-                    Toast.makeText(context, "Protected Video: Cannot download directly via Native code", Toast.LENGTH_LONG).show()
-                }
-            } else {
-                Toast.makeText(context, "Failed to analyze link", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-}
         }
     }
 }
