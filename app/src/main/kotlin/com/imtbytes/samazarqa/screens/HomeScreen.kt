@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -26,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -52,7 +55,7 @@ enum class NavItem(val icon: ImageVector, val label: String) {
 fun HomeScreen(
     isDarkTheme: Boolean,
     isSecure: Boolean,
-    currentTheme: AppTheme, 
+    currentTheme: AppTheme,
     onThemeChanged: (AppTheme) -> Unit
 ) {
     val context = LocalContext.current
@@ -91,7 +94,12 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            // 1. Main Content Area
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
                 AnimatedContent(
                     targetState = selectedItem,
                     label = "ScreenTransition"
@@ -106,32 +114,70 @@ fun HomeScreen(
                 }
             }
 
+            // 2. LIQUID GLASS NAVIGATION RAIL
+            // এটি Row এর ভেতরে থাকতে হবে, বাইরে নয়
             NavigationRail(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .padding(vertical = 16.dp, horizontal = 8.dp)
-                    .clip(RoundedCornerShape(24.dp)),
-                containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White,
+                    .padding(vertical = 24.dp, horizontal = 12.dp)
+                    .clip(RoundedCornerShape(50.dp)) // Liquid Capsule Shape
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                if (isDarkTheme) Color(0xFF2C2C2C).copy(alpha = 0.75f) else Color.White.copy(alpha = 0.85f),
+                                if (isDarkTheme) Color(0xFF1A1A1A).copy(alpha = 0.30f) else Color.White.copy(alpha = 0.30f)
+                            ),
+                            start = Offset(0f, 0f),
+                            end = Offset(0f, Float.POSITIVE_INFINITY)
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.6f),
+                                Color.White.copy(alpha = 0.1f),
+                                Color.Transparent
+                            ),
+                            start = Offset(0f, 0f),
+                            end = Offset(100f, 300f)
+                        ),
+                        shape = RoundedCornerShape(50.dp)
+                    ),
+                containerColor = Color.Transparent, // স্বচ্ছ রাখার জন্য জরুরি
                 contentColor = PrimaryBlue
             ) {
                 Column(
                     modifier = Modifier.fillMaxHeight(),
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     NavItem.entries.forEach { item ->
+                        val isSelected = selectedItem == item
+                        
                         NavigationRailItem(
-                            selected = selectedItem == item,
+                            selected = isSelected,
                             onClick = { selectedItem = item },
-                            icon = { Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(24.dp)) },
-                            label = { Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Medium) },
+                            icon = { 
+                                Icon(
+                                    item.icon, 
+                                    contentDescription = item.label, 
+                                    modifier = Modifier.size(24.dp)
+                                ) 
+                            },
+                            label = { 
+                                if(isSelected) { 
+                                    Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Bold) 
+                                }
+                            },
                             colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = Color.White,
+                                selectedIconColor = PrimaryBlue,
                                 selectedTextColor = PrimaryBlue,
-                                indicatorColor = PrimaryBlue,
+                                indicatorColor = PrimaryBlue.copy(alpha = 0.15f), // হালকা আভা
                                 unselectedIconColor = if (isDarkTheme) Color.Gray else Color.DarkGray,
                                 unselectedTextColor = if (isDarkTheme) Color.Gray else Color.DarkGray
                             ),
-                            modifier = Modifier.padding(vertical = 4.dp)
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
                 }
@@ -139,6 +185,8 @@ fun HomeScreen(
         }
     }
 }
+
+// --- TOP BAR & SEARCH ---
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,9 +293,8 @@ private fun SearchBarInput(
     )
 }
 
-/**
- * Extracted Home Content to keep logic clean and work with Navigation
- */
+// --- HOME CONTENT & CARDS ---
+
 @Composable
 fun HomeContent(
     isDarkTheme: Boolean,
@@ -262,12 +309,8 @@ fun HomeContent(
         verticalArrangement = Arrangement.spacedBy(24.dp),
         contentPadding = PaddingValues(bottom = 40.dp)
     ) {
-        // Security Status Card
-        item {
-            SecurityStatusCard(isSecure)
-        }
+        item { SecurityStatusCard(isSecure) }
 
-        // Section Header
         item {
             Text(
                 text = "Security Suite",
@@ -277,59 +320,33 @@ fun HomeContent(
             )
         }
 
-        // Service Cards Grid
         item {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ServiceCard(
-                        title = "System Lock",
-                        icon = Icons.Default.AdminPanelSettings,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("System Hardened ✓")
-                        }
+                    ServiceCard(title = "System Lock", icon = Icons.Default.AdminPanelSettings, modifier = Modifier.weight(1f)) {
+                        scope.launch { snackbarHostState.showSnackbar("System Hardened ✓") }
                     }
-                    ServiceCard(
-                        title = "WiFi Scan",
-                        icon = Icons.Default.WifiTethering,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Scanning Network...")
-                        }
+                    ServiceCard(title = "WiFi Scan", icon = Icons.Default.WifiTethering, modifier = Modifier.weight(1f)) {
+                        scope.launch { snackbarHostState.showSnackbar("Scanning Network...") }
                     }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ServiceCard(
-                        title = "Vault Pro",
-                        icon = Icons.Default.EnhancedEncryption,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Vault Secured ✓")
-                        }
+                    ServiceCard(title = "Vault Pro", icon = Icons.Default.EnhancedEncryption, modifier = Modifier.weight(1f)) {
+                        scope.launch { snackbarHostState.showSnackbar("Vault Secured ✓") }
                     }
-                    ServiceCard(
-                        title = "Log Wipe",
-                        icon = Icons.Default.CleaningServices,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Logs Purged ✓")
-                        }
+                    ServiceCard(title = "Log Wipe", icon = Icons.Default.CleaningServices, modifier = Modifier.weight(1f)) {
+                        scope.launch { snackbarHostState.showSnackbar("Logs Purged ✓") }
                     }
                 }
             }
         }
 
-        // Section Header
         item {
             Text(
                 text = "Protection Logs",
@@ -339,38 +356,16 @@ fun HomeContent(
             )
         }
 
-        // Protection Logs
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                LogItem(
-                    title = "Encrypted Traffic",
-                    status = "AES-256 Enabled",
-                    icon = Icons.Default.Security,
-                    color = Color(0xFF4CAF50)
-                )
-                LogItem(
-                    title = "Anti-Tamper",
-                    status = "Shielding Memory",
-                    icon = Icons.Default.RemoveModerator,
-                    color = PrimaryBlue
-                )
-                LogItem(
-                    title = "Firewall Active",
-                    status = "Blocking Threats",
-                    icon = Icons.Default.GppGood,
-                    color = Color(0xFFFF9800)
-                )
+                LogItem("Encrypted Traffic", "AES-256 Enabled", Icons.Default.Security, Color(0xFF4CAF50))
+                LogItem("Anti-Tamper", "Shielding Memory", Icons.Default.RemoveModerator, PrimaryBlue)
+                LogItem("Firewall Active", "Blocking Threats", Icons.Default.GppGood, Color(0xFFFF9800))
             }
         }
     }
 }
 
-// --- CORE COMPONENTS (DO NOT REMOVE) ---
-
-/**
- * Security Status Card - Shows current protection status
- * DO NOT REMOVE OR CHANGE (as requested)
- */
 @Composable
 fun SecurityStatusCard(isSecure: Boolean) {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
@@ -385,9 +380,7 @@ fun SecurityStatusCard(isSecure: Boolean) {
     )
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(190.dp),
+        modifier = Modifier.fillMaxWidth().height(190.dp),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSecure) PrimaryBlue else Color(0xFFD32F2F)
@@ -395,23 +388,13 @@ fun SecurityStatusCard(isSecure: Boolean) {
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Decorative background icon
             Icon(
                 imageVector = Icons.Default.Shield,
                 contentDescription = null,
                 tint = Color.White.copy(alpha = shimmerAlpha),
-                modifier = Modifier
-                    .size(220.dp)
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 50.dp, y = 50.dp)
+                modifier = Modifier.size(220.dp).align(Alignment.BottomEnd).offset(x = 50.dp, y = 50.dp)
             )
-
-            Column(
-                modifier = Modifier
-                    .padding(28.dp)
-                    .align(Alignment.CenterStart)
-            ) {
-                // Status Badge
+            Column(modifier = Modifier.padding(28.dp).align(Alignment.CenterStart)) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Color.White.copy(alpha = 0.25f)
@@ -421,134 +404,53 @@ fun SecurityStatusCard(isSecure: Boolean) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                        )
-                        Text(
-                            text = if (isSecure) "PROTECTED" else "DANGER",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color.White))
+                        Text(if (isSecure) "PROTECTED" else "DANGER", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
                 }
-                
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = if (isSecure) "System is\nSecured" else "Security\nBreached!",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    lineHeight = 38.sp
-                )
-                
+                Text(if (isSecure) "System is\nSecured" else "Security\nBreached!", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, lineHeight = 38.sp)
                 Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = if (isSecure) 
-                        "All protections active" 
-                    else 
-                        "Immediate action required",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
+                Text(if (isSecure) "All protections active" else "Immediate action required", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.85f))
             }
         }
     }
 }
 
-/**
- * Service Card - Interactive card for security features
- * DO NOT REMOVE OR CHANGE (as requested)
- */
 @Composable
-fun ServiceCard(
-    title: String,
-    icon: ImageVector,
-    modifier: Modifier,
-    onClick: () -> Unit
-) {
+fun ServiceCard(title: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "cardScale"
-    )
+    val scale by animateFloatAsState(targetValue = if (isPressed) 0.94f else 1f, label = "cardScale")
 
     Surface(
         modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .height(120.dp)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                onClick = {
-                    onClick()
-                }
-            ),
+            .clickable(interactionSource, LocalIndication.current, onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (isPressed) 2.dp else 6.dp,
         tonalElevation = 1.dp
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(
-                shape = CircleShape,
-                color = PrimaryBlue.copy(alpha = 0.12f),
-                modifier = Modifier.size(56.dp)
-            ) {
+            Surface(shape = CircleShape, color = PrimaryBlue.copy(alpha = 0.12f), modifier = Modifier.size(56.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = PrimaryBlue,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    Icon(imageVector = icon, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(26.dp))
                 }
             }
-            
             Spacer(modifier = Modifier.height(12.dp))
-            
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text(text = title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
-/**
- * Log Item - Shows security activity logs
- */
 @Composable
-fun LogItem(
-    title: String,
-    status: String,
-    icon: ImageVector,
-    color: Color
-) {
+fun LogItem(title: String, status: String, icon: ImageVector, color: Color) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -556,49 +458,18 @@ fun LogItem(
         shadowElevation = 2.dp,
         tonalElevation = 1.dp
     ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(color.copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
+        Row(modifier = Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(48.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
             }
-            
             Spacer(modifier = Modifier.width(16.dp))
-            
             Column {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = status,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Text(text = status, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
-            
             Spacer(modifier = Modifier.weight(1f))
-            
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(color, CircleShape)
-            )
+            Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
         }
     }
 }
