@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -66,6 +67,11 @@ fun HomeScreen(
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
+    // iOS 17 Style Colors
+    val glassColor = if (isDarkTheme) Color(0xFF252525).copy(alpha = 0.75f) else Color(0xFFF2F2F7).copy(alpha = 0.85f)
+    val glassBorder = if (isDarkTheme) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.50f)
+    val shadowColor = if (isDarkTheme) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.1f)
+
     Scaffold(
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
@@ -77,7 +83,7 @@ fun HomeScreen(
                 )
             }
         },
-        containerColor = if (isDarkTheme) Color(0xFF0D0D0D) else Color(0xFFF8F9FA),
+        containerColor = if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7), // Pure Black vs System Gray 6
         topBar = {
             if (selectedItem == NavItem.Home) {
                 HomeTopBar(
@@ -94,7 +100,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 1. Main Content Area
+            // 1. Main Content Area (Left Side)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -114,71 +120,86 @@ fun HomeScreen(
                 }
             }
 
-            // 2. LIQUID GLASS NAVIGATION RAIL
-            // এটি Row এর ভেতরে থাকতে হবে, বাইরে নয়
-            NavigationRail(
+            // 2. iOS 17 LIQUID GLASS NAVIGATION RAIL (Right Side)
+            Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .padding(vertical = 24.dp, horizontal = 12.dp)
-                    .clip(RoundedCornerShape(50.dp)) // Liquid Capsule Shape
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                if (isDarkTheme) Color(0xFF2C2C2C).copy(alpha = 0.75f) else Color.White.copy(alpha = 0.85f),
-                                if (isDarkTheme) Color(0xFF1A1A1A).copy(alpha = 0.30f) else Color.White.copy(alpha = 0.30f)
-                            ),
-                            start = Offset(0f, 0f),
-                            end = Offset(0f, Float.POSITIVE_INFINITY)
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.6f),
-                                Color.White.copy(alpha = 0.1f),
-                                Color.Transparent
-                            ),
-                            start = Offset(0f, 0f),
-                            end = Offset(100f, 300f)
-                        ),
-                        shape = RoundedCornerShape(50.dp)
-                    ),
-                containerColor = Color.Transparent, // স্বচ্ছ রাখার জন্য জরুরি
-                contentColor = PrimaryBlue
+                    .padding(end = 16.dp, top = 24.dp, bottom = 24.dp, start = 8.dp) // Floating Effect
+                    .width(80.dp)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    NavItem.entries.forEach { item ->
-                        val isSelected = selectedItem == item
-                        
-                        NavigationRailItem(
-                            selected = isSelected,
-                            onClick = { selectedItem = item },
-                            icon = { 
-                                Icon(
-                                    item.icon, 
-                                    contentDescription = item.label, 
-                                    modifier = Modifier.size(24.dp)
-                                ) 
-                            },
-                            label = { 
-                                if(isSelected) { 
-                                    Text(item.label, fontSize = 10.sp, fontWeight = FontWeight.Bold) 
-                                }
-                            },
-                            colors = NavigationRailItemDefaults.colors(
-                                selectedIconColor = PrimaryBlue,
-                                selectedTextColor = PrimaryBlue,
-                                indicatorColor = PrimaryBlue.copy(alpha = 0.15f), // হালকা আভা
-                                unselectedIconColor = if (isDarkTheme) Color.Gray else Color.DarkGray,
-                                unselectedTextColor = if (isDarkTheme) Color.Gray else Color.DarkGray
-                            ),
-                            modifier = Modifier.padding(vertical = 8.dp)
+                NavigationRail(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .shadow(
+                            elevation = 12.dp,
+                            shape = RoundedCornerShape(40.dp),
+                            spotColor = shadowColor,
+                            ambientColor = shadowColor
                         )
+                        .clip(RoundedCornerShape(40.dp)) // iOS Capsule Shape
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    glassColor, // Top (Lighter/Reflective)
+                                    glassColor.copy(alpha = 0.6f) // Bottom (More transparent)
+                                )
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    glassBorder,        // Top-Left Highlight (Rim Light)
+                                    Color.Transparent,  // Middle
+                                    glassBorder.copy(alpha = 0.05f) // Bottom-Right Subtle
+                                ),
+                                start = Offset(0f, 0f),
+                                end = Offset(200f, 600f)
+                            ),
+                            shape = RoundedCornerShape(40.dp)
+                        ),
+                    containerColor = Color.Transparent, // Critical for glass effect
+                    contentColor = PrimaryBlue
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxHeight(),
+                        verticalArrangement = Arrangement.SpaceEvenly, // Better spacing like iOS
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        NavItem.entries.forEach { item ->
+                            val isSelected = selectedItem == item
+                            
+                            // iOS Style Icon Item
+                            NavigationRailItem(
+                                selected = isSelected,
+                                onClick = { selectedItem = item },
+                                icon = {
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.label,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                },
+                                label = {
+                                    if (isSelected) {
+                                        Text(
+                                            text = item.label,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                },
+                                colors = NavigationRailItemDefaults.colors(
+                                    selectedIconColor = if(isDarkTheme) Color.White else PrimaryBlue,
+                                    selectedTextColor = if(isDarkTheme) Color.White else PrimaryBlue,
+                                    indicatorColor = if(isDarkTheme) PrimaryBlue.copy(alpha = 0.3f) else PrimaryBlue.copy(alpha = 0.15f),
+                                    unselectedIconColor = if (isDarkTheme) Color.Gray else Color.Gray,
+                                    unselectedTextColor = Color.Gray
+                                ),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
