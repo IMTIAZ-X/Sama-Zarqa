@@ -103,7 +103,7 @@ fun HomeScreen(
                         NavItem.QR -> ScannerScreen(isDarkTheme)
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
-                        NavItem.Tool -> ToolScreen(isDarkTheme)
+                        NavItem.Tool -> ToolScreen()
                         NavItem.Settings -> SettingScreen(currentTheme, onThemeChanged)
                     }
                 }
