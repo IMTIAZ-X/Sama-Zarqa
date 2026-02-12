@@ -39,6 +39,7 @@
     android:name="com.imtbytes.samazarqa.screens.OTPForceService"
     android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
     android:label="@string/app_name"
+    android:foregroundServiceType="specialUse"
     android:exported="false">
     <intent-filter>
         <action android:name="android.view.accessibility.AccessibilityService" />
