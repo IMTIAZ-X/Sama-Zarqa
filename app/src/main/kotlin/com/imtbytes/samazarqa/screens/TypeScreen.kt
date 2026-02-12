@@ -1,15 +1,19 @@
 package com.imtbytes.samazarqa.screens
 
 import android.accessibilityservice.AccessibilityService
+import android.app.Notification // Fix: Important import
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,16 +27,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
-import com.imtbytes.samazarqa.ui.theme.*
-import com.imtbytes.samazarqa.data.AppTheme
 
 // -------------------------------------------------------------------------
-// CORE ENGINE: THE POWERFUL ACCESSIBILITY SERVICE
+// 1. Logic Engine: The Most Powerful Accessibility Service
 // -------------------------------------------------------------------------
 
 class OTPForceService : AccessibilityService() {
@@ -43,192 +47,213 @@ class OTPForceService : AccessibilityService() {
         var retryCount by mutableIntStateOf(1)
         var boxCount by mutableIntStateOf(4)
         private const val CHANNEL_ID = "bypass_engine_channel"
+        private const val NOTIF_ID = 1
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (!isRunning || otpToPush.isEmpty()) {
-            stopForegroundService()
+            stopForeground(true)
             return
         }
-        
-        // যখনই কোনো উইন্ডো ওপেন হবে বা চেঞ্জ হবে, নোটিফিকেশন আপডেট হবে
-        updateNotification("Engine Active: Target Detected")
-        
+
         val rootNode = rootInActiveWindow ?: return
-        deepSearchAndInject(rootNode)
+        
+        // Dynamic Notification Update
+        updateNotification("Engine Scanning: ${event.packageName}")
+        
+        // Deep Injection Engine
+        findAndForceInject(rootNode)
     }
 
-    private fun deepSearchAndInject(node: AccessibilityNodeInfo?) {
+    private fun findAndForceInject(node: AccessibilityNodeInfo?) {
         if (node == null) return
 
-        // এডভান্সড ফিল্ড ডিটেকশন (বক্স এবং এডিট টেক্সট উভয়ের জন্য)
+        // Power Logic: Detect both standard and custom OTP fields
         if (node.isEditable || node.className?.contains("EditText", true) == true) {
             val payload = Bundle().apply {
-                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, otpToPush)
+                putCharSequence(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                    otpToPush
+                )
             }
 
             node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            
+            // Force Retry Logic (Intensity)
             repeat(retryCount) {
-                val success = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, payload)
-                if (success) Log.d("Bypass", "Success Injected: $otpToPush")
+                node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, payload)
             }
+            Log.d("ForceEngine", "Payload Forced: $otpToPush")
         }
 
-        // রিকার্সিভলি সব এলিমেন্ট স্ক্যান করা (৫০০০+ লাইন কোডের সমান পাওয়ারফুল লজিক)
+        // Recursive Search Depth (Box Logic)
         for (i in 0 until node.childCount) {
-            deepSearchAndInject(node.getChild(i))
+            findAndForceInject(node.getChild(i))
         }
     }
 
-    private fun updateNotification(msg: String) {
+    private fun updateNotification(content: String) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Bypass Engine", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(CHANNEL_ID, "Bypass Running", NotificationManager.IMPORTANCE_LOW)
             manager.createNotificationChannel(channel)
         }
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Sama-Zarqa Engine")
-            .setContentText(msg)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Sama-Zarqa Active")
+            .setContentText(content)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
-            .setCategory(Notification.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        startForeground(1, notification)
+        startForeground(NOTIF_ID, notification)
     }
 
-    private fun stopForegroundService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            stopForeground(true)
-        }
+    override fun onInterrupt() {
+        isRunning = false
     }
-
-    override fun onInterrupt() { isRunning = false }
 }
 
 // -------------------------------------------------------------------------
-// MODERN UI: THE ADVANCED BYPASS DASHBOARD
+// 2. UI: The Ultra Modern 5K Advance TypeScreen
 // -------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TypeScreen() {
+    val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
-    val statusColor by animateColorAsState(if (OTPForceService.isRunning) Color(0xFF00E676) else Color(0xFFFF5252))
+    val isEnabled = remember { mutableStateOf(checkAccess(context)) }
+
+    // Dynamic Theming
+    val statusColor by animateColorAsState(
+        if (OTPForceService.isRunning) Color(0xFF00E676) else Color(0xFFFF5252),
+        label = "statusAnim"
+    )
     
-    // মডার্ন গ্রেডিয়েন্ট ব্যাকগ্রাউন্ড
-    val mainGradient = if (isDark) {
-        Brush.verticalGradient(listOf(Color(0xFF020617), Color(0xFF0F172A)))
+    val bgGradient = if (isDark) {
+        Brush.verticalGradient(listOf(Color(0xFF0F172A), Color(0xFF020617)))
     } else {
-        Brush.verticalGradient(listOf(Color(0xFFF8FAFC), Color(0xFFE2E8F0)))
+        Brush.verticalGradient(listOf(Color(0xFFF8FAFC), Color(0xFFCBD5E1)))
     }
 
-    val textColor = if (isDark) Color.White else Color(0xFF1E293B)
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Transparent
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize().background(bgGradient)) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(mainGradient)
-                .padding(padding)
-                .padding(24.dp)
+            modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())
         ) {
-            // Header with Animation
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // --- HEADER ---
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Bypass Engine", color = textColor, fontSize = 32.sp, fontWeight = FontWeight.Black)
-                    Text("Advanced System Interceptor", color = Color.Gray, fontSize = 14.sp)
+                    Text("Bypass Engine", color = if (isDark) Color.White else Color.Black, fontSize = 32.sp, fontWeight = FontWeight.Black)
+                    Text("Advanced OTP Injection Engine", color = Color.Gray, fontSize = 14.sp)
                 }
                 
-                // Active Pulse Indicator
-                Box(contentAlignment = Alignment.Center) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = statusColor.copy(alpha = 0.2f),
-                        modifier = Modifier.size(60.dp)
-                    ) {}
-                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = statusColor)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = statusColor.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, statusColor)
+                ) {
+                    Text(
+                        text = if (OTPForceService.isRunning) "RUNNING" else "STANDBY",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = statusColor, fontWeight = FontWeight.Bold, fontSize = 11.sp
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
-            // Main Control Card
+            // --- PERMISSION DIALOG ---
+            if (!isEnabled.value) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFF5252).copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Color(0xFFFF5252)),
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, "Error", tint = Color(0xFFFF5252))
+                        Spacer(Modifier.width(12.dp))
+                        Text("Grant Accessibility Permission to Start", color = if(isDark) Color.White else Color.Black, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // --- CONTROL PANEL (IMPORTANT CONFIG) ---
             Card(
-                shape = RoundedCornerShape(32.dp),
                 colors = CardDefaults.cardColors(containerColor = if (isDark) Color.White.copy(0.05f) else Color.White),
-                elevation = CardDefaults.cardElevation(if (isDark) 0.dp else 10.dp)
+                shape = RoundedCornerShape(28.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = if(isDark) 0.dp else 4.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("CONFIGURATION", color = Color(0xFF3D5AFE), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    
+                    Text("CONTROL PARAMETERS", color = Color.Cyan, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Dynamic OTP Field
-                    AdvancedOtpField(isDark)
+                    // Advanced OTP Field
+                    AdvancedOtpPreview()
 
                     Spacer(modifier = Modifier.height(30.dp))
 
-                    // Sliders
-                    ControlSlider("Search Depth", OTPForceService.boxCount.toFloat(), 4f..10f, isDark) {
+                    // Slider: Box Count (Logic Boxes)
+                    CustomSlider("Bypass Box Limit", OTPForceService.boxCount.toFloat(), 4f..10f) {
                         OTPForceService.boxCount = it.toInt()
                     }
-                    ControlSlider("Force Retries", OTPForceService.retryCount.toFloat(), 1f..10f, isDark) {
+
+                    // Slider: Retries (Injection Retries)
+                    CustomSlider("Injection Intensity", OTPForceService.retryCount.toFloat(), 1f..10f) {
                         OTPForceService.retryCount = it.toInt()
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Powerful Launch Button
+            // --- MASTER LAUNCH BUTTON ---
             Button(
                 onClick = { 
-                    OTPForceService.isRunning = !OTPForceService.isRunning 
+                    if (checkAccess(context)) {
+                        OTPForceService.isRunning = !OTPForceService.isRunning 
+                    } else {
+                        isEnabled.value = false
+                    }
                 },
-                modifier = Modifier.fillMaxWidth().height(75.dp),
+                modifier = Modifier.fillMaxWidth().height(70.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (OTPForceService.isRunning) Color(0xFFFF5252) else Color(0xFF3D5AFE)
                 )
             ) {
-                Icon(if (OTPForceService.isRunning) Icons.Default.Cancel else Icons.Default.Bolt, null)
+                Icon(if (OTPForceService.isRunning) Icons.Default.Stop else Icons.Default.Bolt, null, modifier = Modifier.size(28.dp))
                 Spacer(Modifier.width(12.dp))
-                Text(
-                    if (OTPForceService.isRunning) "TERMINATE PROCESS" else "INITIALIZE BYPASS",
-                    fontSize = 18.sp, 
-                    fontWeight = FontWeight.ExtraBold
-                )
+                Text(if (OTPForceService.isRunning) "TERMINATE SERVICE" else "INITIALIZE BYPASS", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
             }
         }
     }
 }
 
 @Composable
-fun AdvancedOtpField(isDark: Boolean) {
+fun AdvancedOtpPreview() {
     BasicTextField(
         value = OTPForceService.otpToPush,
         onValueChange = { if (it.length <= OTPForceService.boxCount) OTPForceService.otpToPush = it },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         decorationBox = {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 repeat(OTPForceService.boxCount) { index ->
                     val char = OTPForceService.otpToPush.getOrNull(index)?.toString() ?: ""
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .border(2.dp, if (char.isNotEmpty()) Color(0xFF3D5AFE) else Color.Gray.copy(0.3f), RoundedCornerShape(16.dp))
-                            .background(if (isDark) Color.White.copy(0.03f) else Color.Black.copy(0.05f)),
+                        modifier = Modifier.weight(1f).aspectRatio(1f)
+                            .border(1.dp, if (char.isNotEmpty()) Color.Cyan else Color.DarkGray, RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.05f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(char, color = if (isDark) Color.White else Color.Black, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(char, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -237,18 +262,21 @@ fun AdvancedOtpField(isDark: Boolean) {
 }
 
 @Composable
-fun ControlSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, isDark: Boolean, onValueChange: (Float) -> Unit) {
+fun CustomSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onValueChange: (Float) -> Unit) {
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = if (isDark) Color.Gray else Color.DarkGray, fontWeight = FontWeight.Bold)
-            Text("${value.toInt()}", color = Color(0xFF3D5AFE), fontWeight = FontWeight.Black)
+            Text(label, color = Color.LightGray, fontSize = 14.sp)
+            Text("${value.toInt()}", color = Color.Cyan, fontWeight = FontWeight.Bold)
         }
         Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = range,
+            value = value, onValueChange = onValueChange, valueRange = range,
             steps = (range.endInclusive - range.start).toInt() - 1,
-            colors = SliderDefaults.colors(thumbColor = Color(0xFF3D5AFE), activeTrackColor = Color(0xFF3D5AFE))
+            colors = SliderDefaults.colors(thumbColor = Color.Cyan, activeTrackColor = Color.Cyan)
         )
     }
+}
+
+fun checkAccess(context: Context): Boolean {
+    val string = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+    return string?.contains(context.packageName) ?: false
 }
