@@ -45,7 +45,7 @@ enum class NavItem(val icon: ImageVector, val label: String) {
     QR(Icons.Default.QrCodeScanner, "QR"),
     Downloader(Icons.Default.Download, "Download"),
     Profile(Icons.Default.Person, "Profile"),
-    Type(Icons.Default.Build, "Type"),
+    Tool(Icons.Default.Build, "Tools"),
     Settings(Icons.Default.Settings, "Setting")
 }
 
@@ -103,7 +103,7 @@ fun HomeScreen(
                         NavItem.QR -> ScannerScreen(isDarkTheme)
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
-                        NavItem.Type -> TypeScreen(isDarkTheme)
+                        NavItem.Tool -> ToolScreen(isDarkTheme)
                         NavItem.Settings -> SettingScreen(currentTheme, onThemeChanged)
                     }
                 }
