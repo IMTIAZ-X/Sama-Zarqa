@@ -19,7 +19,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.build
+import androidx.compose.material.icons.filled.build
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +45,7 @@ enum class NavItem(val icon: ImageVector, val label: String) {
     QR(Icons.Default.QrCodeScanner, "QR"),
     Downloader(Icons.Default.Download, "Download"),
     Profile(Icons.Default.Person, "Profile"),
-    Type(Icons.Default.Person, "Type"),
+    Type(Icons.Default.build, "Type"),
     Settings(Icons.Default.Settings, "Setting")
 }
 
@@ -103,7 +103,7 @@ fun HomeScreen(
                         NavItem.QR -> ScannerScreen(isDarkTheme)
                         NavItem.Downloader -> DownloaderScreen(isDarkTheme)
                         NavItem.Profile -> ProfileScreen(isDarkTheme)
-                        NavItem.Type -> TypeScreen(isDarkTheme)
+                        NavItem.Type -> TypeScreen()
                         NavItem.Settings -> SettingScreen(currentTheme, onThemeChanged)
                     }
                 }
