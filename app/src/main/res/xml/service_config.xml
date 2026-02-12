@@ -4,4 +4,4 @@
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
-    android:description="Sama-Zarqa Advanced Bypass Engine Service" />
+    android:description="Sama Zarqa Advanced Bypass Engine Service" />
