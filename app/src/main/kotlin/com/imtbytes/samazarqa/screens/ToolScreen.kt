@@ -1,7 +1,6 @@
 package com.imtbytes.samazarqa.screens
 
 import android.accessibilityservice.AccessibilityService
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ComponentName
@@ -27,7 +26,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -71,7 +69,6 @@ class OTPForceService : AccessibilityService() {
             }
             node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
             repeat(retryCount) { node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, payload) }
-            Log.d("ForceEngine", "Payload Forced: $otpToPush")
         }
         for (i in 0 until node.childCount) findAndForceInject(node.getChild(i))
     }
@@ -96,22 +93,18 @@ class OTPForceService : AccessibilityService() {
 
 // 2. Main Navigation Wrapper
 @Composable
-fun ToolScreen(isDarkTheme: Boolean) {
-    val isDark = isSystemInDarkTheme() || isDarkTheme
+fun ToolScreen() {
     var currentSubScreen by remember { mutableStateOf("dashboard") }
 
-    val bgGradient = if (isDark) Brush.verticalGradient(listOf(Color(0xFF0F172A), Color(0xFF020617))) 
-                     else Brush.verticalGradient(listOf(Color(0xFFF8FAFC), Color(0xFFCBD5E1)))
-
-    Box(modifier = Modifier.fillMaxSize().background(bgGradient)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AnimatedContent(
             targetState = currentSubScreen,
             transitionSpec = { slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut() },
             label = "screen_transition"
         ) { screen ->
             when (screen) {
-                "dashboard" -> DashboardContent(isDark) { currentSubScreen = it }
-                "otp_typer" -> TypeScreenUI(isDark) { currentSubScreen = "dashboard" }
+                "dashboard" -> DashboardContent { currentSubScreen = it }
+                "otp_typer" -> TypeScreenUI { currentSubScreen = "dashboard" }
             }
         }
     }
@@ -119,33 +112,40 @@ fun ToolScreen(isDarkTheme: Boolean) {
 
 // 3. Dashboard UI
 @Composable
-fun DashboardContent(isDark: Boolean, onNavigate: (String) -> Unit) {
+fun DashboardContent(onNavigate: (String) -> Unit) {
     val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
-        Text("Sama-Zarqa", color = if (isDark) Color.White else Color.Black, fontSize = 32.sp, fontWeight = FontWeight.Black)
-        Text("Ultimate Tools Engine", color = Color.Gray, fontSize = 14.sp)
+        Text(
+            "Sama-Zarqa", 
+            color = MaterialTheme.colorScheme.onBackground, 
+            fontSize = 32.sp, 
+            fontWeight = FontWeight.Black
+        )
+        Text(
+            "Ultimate Tools Engine", 
+            color = MaterialTheme.colorScheme.onSurfaceVariant, 
+            fontSize = 14.sp
+        )
         
         Spacer(modifier = Modifier.height(32.dp))
 
-        ToolCard("OTP Force Injector", "Auto injection for bypass boxes", Icons.Default.Bolt, Color(0xFF3D5AFE), isDark) { 
+        ToolCard("OTP Force Injector", "Auto injection for bypass boxes", Icons.Default.Bolt, Color(0xFF3D5AFE)) { 
             onNavigate("otp_typer") 
         }
-        ToolCard("Engine Speed Tester", "Test injection response time", Icons.Default.Speed, Color(0xFF00E676), isDark) { 
-            Toast.makeText(context, "Under Development", Toast.LENGTH_SHORT).show() 
-        }
-        ToolCard("Internet PIN Tester", "Network protocol latency test", Icons.Default.NetworkCheck, Color(0xFFFF9100), isDark) { 
+        ToolCard("Engine Speed Tester", "Test injection response time", Icons.Default.Speed, Color(0xFF00E676)) { 
             Toast.makeText(context, "Under Development", Toast.LENGTH_SHORT).show() 
         }
     }
 }
 
 @Composable
-fun ToolCard(title: String, desc: String, icon: ImageVector, color: Color, isDark: Boolean, onClick: () -> Unit) {
+fun ToolCard(title: String, desc: String, icon: ImageVector, color: Color, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = if(isDark) Color.White.copy(0.05f) else Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
         Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.15f)) {
@@ -153,8 +153,8 @@ fun ToolCard(title: String, desc: String, icon: ImageVector, color: Color, isDar
             }
             Spacer(Modifier.width(16.dp))
             Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = if(isDark) Color.White else Color.Black)
-                Text(desc, fontSize = 12.sp, color = Color.Gray)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface)
+                Text(desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -162,16 +162,24 @@ fun ToolCard(title: String, desc: String, icon: ImageVector, color: Color, isDar
 
 // 4. OTP Typer Screen UI
 @Composable
-fun TypeScreenUI(isDark: Boolean, onBack: () -> Unit) {
+fun TypeScreenUI(onBack: () -> Unit) {
     val context = LocalContext.current
     val isEnabled = remember { mutableStateOf(checkAccess(context)) }
     val statusColor by animateColorAsState(if (OTPForceService.isRunning) Color(0xFF00E676) else Color(0xFFFF5252), label = "status")
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
-        IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null, tint = if(isDark) Color.White else Color.Black) }
+        IconButton(onClick = onBack) { 
+            Icon(Icons.Default.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground) 
+        }
         
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Bypass Engine", modifier = Modifier.weight(1f), color = if (isDark) Color.White else Color.Black, fontSize = 26.sp, fontWeight = FontWeight.Black)
+            Text(
+                "Bypass Engine", 
+                modifier = Modifier.weight(1f),
+                fontSize = 26.sp, 
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground
+            )
             Surface(shape = RoundedCornerShape(50), color = statusColor.copy(alpha = 0.15f), border = BorderStroke(1.dp, statusColor)) {
                 Text(if (OTPForceService.isRunning) "RUNNING" else "STANDBY", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = statusColor, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             }
@@ -190,7 +198,7 @@ fun TypeScreenUI(isDark: Boolean, onBack: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card(colors = CardDefaults.cardColors(containerColor = if (isDark) Color.White.copy(0.05f) else Color.White)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
             Column(modifier = Modifier.padding(20.dp)) {
                 AdvancedOtpPreview()
                 Spacer(modifier = Modifier.height(24.dp))
@@ -227,8 +235,15 @@ fun AdvancedOtpPreview() {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 repeat(OTPForceService.boxCount) { index ->
                     val char = OTPForceService.otpToPush.getOrNull(index)?.toString() ?: ""
-                    Box(modifier = Modifier.weight(1f).aspectRatio(1f).border(1.dp, if (char.isNotEmpty()) Color.Cyan else Color.DarkGray, RoundedCornerShape(8.dp)).background(Color.White.copy(0.05f)), contentAlignment = Alignment.Center) {
-                        Text(char, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .border(1.dp, if (char.isNotEmpty()) Color.Cyan else Color.Gray, RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surface), 
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(char, color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -240,7 +255,7 @@ fun AdvancedOtpPreview() {
 fun CustomSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onValueChange: (Float) -> Unit) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = Color.Gray, fontSize = 13.sp)
+            Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             Text("${value.toInt()}", color = Color.Cyan, fontWeight = FontWeight.Bold)
         }
         Slider(value = value, onValueChange = onValueChange, valueRange = range, steps = (range.endInclusive - range.start).toInt() - 1)
