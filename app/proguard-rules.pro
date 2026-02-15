@@ -20,8 +20,12 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
+-keepattributes SourceFile, LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod
+
 -renamesourcefileattribute ""
--keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod
+
+#-renamesourcefileattribute ""
+#-keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod
 
 # 0. CORE
 -optimizationpasses 5
