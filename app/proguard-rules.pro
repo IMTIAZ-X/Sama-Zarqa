@@ -20,9 +20,11 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keepattributes SourceFile, LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod
+-keepattributes SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod
 
 -renamesourcefileattribute ""
+
+-keepattributes !*.version, !androidx.*, !com.*
 
 #-renamesourcefileattribute ""
 #-keepattributes !SourceFile,!LineNumberTable,!LocalVariableTable,!LocalVariableTypeTable,!Signature,!InnerClasses,!EnclosingMethod

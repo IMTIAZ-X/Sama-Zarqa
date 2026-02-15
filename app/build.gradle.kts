@@ -122,6 +122,15 @@ androidComponents {
                     "**/DebugProbesKt.bin",
                     "okhttp3/internal/publicsuffix/NOTICE",
                     "okhttp3/**",
+                    "META-INF/*.version",
+                    "**/*.version",
+                    "META-INF/androidx.*",
+                    "META-INF/com.*",
+                    "META-INF/com/**",
+                    "META-INF/androidx/**",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE*",
+                    "META-INF/NOTICE*",
                     "/META-INF/{AL2.0,LGPL2.1}"
              	   )
         	    )
