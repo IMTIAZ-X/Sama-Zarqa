@@ -84,12 +84,12 @@ android {
 
     compileOptions {
     
-        sourceCompatibility = JavaVersion.VERSION_23
-        targetCompatibility = JavaVersion.VERSION_23
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlin {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_23)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
             
             freeCompilerArgs.addAll(
                 "-Xcontext-receivers",
@@ -119,7 +119,7 @@ androidComponents {
                     "META-INF/LICENSE",
                     "META-INF/DEPENDENCIES",
                     "META-INF/*.kotlin_module",
-                    "**'/DebugProbesKt.bin",
+                    "**/DebugProbesKt.bin",
                     "okhttp3/internal/publicsuffix/NOTICE",
                     "okhttp3/**",
                     "/META-INF/{AL2.0,LGPL2.1}"
